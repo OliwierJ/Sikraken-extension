@@ -1,7 +1,7 @@
 {
-  "name": "test",
-  "displayName": "TestExtension",
-  "description": "My first extension",
+  "name": "Sikraken Extension",
+  "displayName": "Sikraken Extension",
+  "description": "VS Code extension for Sikraken",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.140.0"
@@ -14,11 +14,11 @@
   "contributes": {
     "commands": [
       {
-        "command": "test.helloWorld",
+        "command": "sikraken.helloWorld",
         "title": "Hello World"
       },
       {
-        "command": "test.helloTime",
+        "command": "sikraken.helloTime",
         "title": "Hello Time"
       }
     ]
