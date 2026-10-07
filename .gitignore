@@ -6,3 +6,5 @@ eslint.config.mjs
 vsc-extension-quickstart.md
 .env
 .vscodeignore
+lib/sikraken/eclipse
+lib/sikraken/PTC-Solver

@@ -22,9 +22,44 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.window.showInformationMessage(`Current time is: ${time}`);
 	});
 
+	const test = vscode.commands.registerCommand('sikraken.testCommand', async () => {
+		const activeEditor = vscode.window.activeTextEditor;
+		if (!activeEditor) {
+			return;
+		}
+		
+		// Check if the active editor is a C file
+		if (activeEditor.document.languageId !== 'c') {
+			vscode.window.showInformationMessage('This command only works for C files.');
+			return;
+		}
+		
+		const path = activeEditor.document.uri.fsPath;
+		console.log('Active editor path:', path);
+		// Run sikraken with the active editor's path as an argument
+		const terminal = vscode.window.createTerminal('Sikraken Terminal');
+		terminal.show();
+		
+		const sikrakenCommand = `/home/oliwier/Projects/Extension/Sikraken-extension/lib/sikraken/bin/sikraken.sh release budget[10] ${path}`;
+		// send command and then exit
+		terminal.sendText(`${sikrakenCommand} ; exit`);
+		
+		new Promise<void>((resolve) => {
+			const disposable = vscode.window.onDidCloseTerminal((closedTerminal) => {
+				if (closedTerminal === terminal) {
+					disposable.dispose();
+					resolve();
+				}
+			});
+		});
 
+		vscode.window.showInformationMessage('Test command executed!');
+		
+	
+	});
 	context.subscriptions.push(helloWorldCommand);
 	context.subscriptions.push(helloTimeCommand);
+	context.subscriptions.push(test);
 }
 
 // This method is called when your extension is deactivated

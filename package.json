@@ -18,10 +18,23 @@
         "title": "Hello World"
       },
       {
+        "command": "sikraken.testCommand",
+        "title": "Test Command"
+      },
+      {
         "command": "sikraken.helloTime",
         "title": "Hello Time"
       }
-    ]
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "when": "editorHasDefinitionProvider && editorTextFocus",
+          "command": "sikraken.testCommand",
+          "group": "navigation@10"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
