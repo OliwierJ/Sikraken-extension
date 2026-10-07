@@ -1,0 +1,8 @@
+.vscode/
+.vscode-test/
+node_modules/
+out/
+eslint.config.mjs
+vsc-extension-quickstart.md
+.env
+.vscodeignore
