@@ -8,3 +8,5 @@ vsc-extension-quickstart.md
 .vscodeignore
 lib/sikraken/eclipse
 lib/sikraken/PTC-Solver
+lib/sikraken/sikraken_output/**
+lib/sikraken/sikraken_output

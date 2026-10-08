@@ -1,28 +1,29 @@
 // The module 'vscode' contains the VS Code extensibility API
 import * as vscode from 'vscode';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 
+
+const localPath = '/home/oliwier/Projects/Extension/Sikraken-extension/';
+
+async function waitForTerminalClose(terminal: vscode.Terminal): Promise<void> {
+	return new Promise<void>((resolve) => {
+		const disposable = vscode.window.onDidCloseTerminal((closedTerminal) => {
+			if (closedTerminal === terminal) {
+				disposable.dispose();
+				resolve();
+			}
+		});
+	});
+}
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
 
 	console.log('"<Sikraken Extension>" is now active!');
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const helloWorldCommand = vscode.commands.registerCommand('sikraken.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello VS Code!');
-	});
 
-
-	const helloTimeCommand = vscode.commands.registerCommand('sikraken.helloTime', () => {
-		const time = new Date().toLocaleTimeString();
-		vscode.window.showInformationMessage(`Current time is: ${time}`);
-	});
-
-	const test = vscode.commands.registerCommand('sikraken.testCommand', async () => {
+	const runSikrakenOnFile = vscode.commands.registerCommand('sikraken.runSikrakenOnFile', async () => {
 		const activeEditor = vscode.window.activeTextEditor;
 		if (!activeEditor) {
 			return;
@@ -34,32 +35,40 @@ export function activate(context: vscode.ExtensionContext) {
 			return;
 		}
 		
-		const path = activeEditor.document.uri.fsPath;
-		console.log('Active editor path:', path);
-		// Run sikraken with the active editor's path as an argument
+		const filePath = activeEditor.document.uri.fsPath;
+		const fileName = path.basename(filePath, path.extname(filePath));
+
+		const outputPath = path.join(localPath, 'lib/sikraken/sikraken_output', fileName, 'test-suite');
+		const sikrakenCommand = `${localPath}lib/sikraken/bin/sikraken.sh release budget[10] ${filePath}`;
 		const terminal = vscode.window.createTerminal('Sikraken Terminal');
-		terminal.show();
+	
 		
-		const sikrakenCommand = `/home/oliwier/Projects/Extension/Sikraken-extension/lib/sikraken/bin/sikraken.sh release budget[10] ${path}`;
 		// send command and then exit
+		terminal.show();
 		terminal.sendText(`${sikrakenCommand} ; exit`);
-		
-		new Promise<void>((resolve) => {
-			const disposable = vscode.window.onDidCloseTerminal((closedTerminal) => {
-				if (closedTerminal === terminal) {
-					disposable.dispose();
-					resolve();
-				}
-			});
-		});
+		await waitForTerminalClose(terminal);
+
+		const outputChannel = vscode.window.createOutputChannel('Sikraken Test Inputs');
+		try {
+			const testInputFiles = (await fs.readdir(outputPath))
+				.filter((entry) => entry.startsWith('test_input-') && entry.endsWith('.xml'))
+				.sort();
+
+			for (const testInputFile of testInputFiles) {
+				const testInput = await fs.readFile(path.join(outputPath, testInputFile), 'utf8');
+				outputChannel.appendLine(`--- ${testInputFile} ---`);
+				outputChannel.appendLine(testInput);
+			}
+			outputChannel.show(true);
+		} catch (error) {
+			vscode.window.showErrorMessage(`Could not read Sikraken test inputs: ${error}`);
+		}
 
 		vscode.window.showInformationMessage('Test command executed!');
 		
 	
 	});
-	context.subscriptions.push(helloWorldCommand);
-	context.subscriptions.push(helloTimeCommand);
-	context.subscriptions.push(test);
+	context.subscriptions.push(runSikrakenOnFile);
 }
 
 // This method is called when your extension is deactivated
