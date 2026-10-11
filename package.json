@@ -26,7 +26,25 @@
           "group": "navigation@10"
         }
       ]
+    },
+    "configuration": {
+      "title": "Sikraken Extension",
+      "type": "object",
+      "properties": {
+        "sikraken.framework" : {
+          "type": "string",
+          "enum": ["Unity"],
+          "markdownEnumDescriptions": [
+          "Unity C Unit Test Framework"
+        ],
+        "enumItemLabels": [
+          "Unity"
+        ],
+        "default": "Unity",
+        "description": "Select the framework to use for generating test cases."
+      }
     }
+  }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

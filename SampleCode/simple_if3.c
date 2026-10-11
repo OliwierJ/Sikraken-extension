@@ -13,22 +13,22 @@ extern int __VERIFIER_nondet_int();
 extern char __VERIFIER_nondet_char();
 
 int main() {
-  int x = __VERIFIER_nondet_int();
+  int z = __VERIFIER_nondet_int();
   int y = __VERIFIER_nondet_int();
   int c = __VERIFIER_nondet_char();
 
-  if (x > 0) {
-    x++;
+  if (z > 0) {
+    z++;
   }
   if (c == 'a') {
-    x += 2;
+    z += 2;
   }
 
   if (y < 5 && c != 'b') {
     y--;
   }
 
-  if (x == y) {
+  if (z == y) {
     c = 'c';
   }
   
