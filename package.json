@@ -1,5 +1,5 @@
 {
-  "name": "Sikraken Extension",
+  "name": "sikraken-extension",
   "displayName": "Sikraken Extension",
   "description": "VS Code extension for Sikraken",
   "version": "0.0.1",
@@ -16,6 +16,10 @@
       {
         "command": "sikraken.runSikrakenOnFile",
         "title": "Run Sikraken on File"
+      },
+      {
+        "command": "sikraken.generateTestsOnFunction",
+        "title": "Generate Tests on Function"
       }
     ],
     "menus": {
@@ -23,6 +27,11 @@
         {
           "when": "editorHasDefinitionProvider && editorTextFocus",
           "command": "sikraken.runSikrakenOnFile",
+          "group": "navigation@10"
+        },
+        {
+          "when": "editorHasDefinitionProvider && editorTextFocus",
+          "command": "sikraken.generateTestsOnFunction",
           "group": "navigation@10"
         }
       ]
