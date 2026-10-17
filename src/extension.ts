@@ -1,11 +1,8 @@
 import * as vscode from 'vscode';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import { nondeterministicTemplate } from './templates';
-
-const execFileAsync = promisify(execFile);
+import { nondeterministicTemplate, unityTemplate, unityTestCaseTemplate } from './templates';
+import { runSikraken } from './sikrakenRunner';
 
 
 type FunctionParameter = {
@@ -19,6 +16,11 @@ type TransformedFunction = {
     originalName: string;
     returnType: string;
     parameters: FunctionParameter[];
+};
+
+type TestCase = {
+	name: string;
+	body: string;
 };
 
 // This method is called when the extension is activated
@@ -45,13 +47,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 		// Invoke Sikraken script with the selected file
 		try {
-			const result = await execFileAsync('bash', [
-				sikrakenScriptPath,
-				'release',
-				'budget[10]',
-				filePath,
-			], {
-				windowsHide: true,
+			const result = await runSikraken({
+				scriptPath: sikrakenScriptPath,
+				inputPath: filePath,
+				outputKey: fileName,
 			});
 
 			if (result.stderr && result.stderr.trim()) {
@@ -108,8 +107,8 @@ export function activate(context: vscode.ExtensionContext) {
 
 		vscode.window.showInformationMessage('Test command executed!');
 		
-	
 	});
+
 
 	vscode.commands.registerCommand('sikraken.generateTestsOnFunction', async () => {
 		const activeEditor = vscode.window.activeTextEditor;
@@ -174,6 +173,11 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 
 		const transformedFunction = createIndeterminateFunction(functionSource);
+		if (!transformedFunction) {
+			vscode.window.showErrorMessage('Failed to transform the selected function.');
+			return;
+		}
+
 		console.log(transformedFunction);
 
 		const tempRoot = context.globalStorageUri.fsPath;
@@ -181,10 +185,11 @@ export function activate(context: vscode.ExtensionContext) {
 
 		const tempDirectory = await fs.mkdtemp(path.join(tempRoot, 'sikraken-'));
 
-		const tempFileName = 'main.c';
+		const requestId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+		const tempFileName = `main-${requestId}.c`;
 		const tempFilePath = path.join(tempDirectory, tempFileName);
 
-		await fs.writeFile(tempFilePath, transformedFunction, 'utf8');
+		await fs.writeFile(tempFilePath, transformedFunction.source, 'utf8');
 		const sikrakenScriptPath = context.asAbsolutePath('lib/sikraken/bin/sikraken.sh');
 
 		const tempFileBaseName = path.basename(
@@ -207,13 +212,10 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 
 		try {
-			const result = await execFileAsync('bash', [
-				sikrakenScriptPath,
-				'release',
-				'budget[10]',
-				tempFilePath,
-			], {
-				windowsHide: true,
+			const result = await runSikraken({
+				scriptPath: sikrakenScriptPath,
+				inputPath: tempFilePath,
+				outputKey: tempFileBaseName,
 			});
 
 			if (result.stderr && result.stderr.trim()) {
@@ -240,12 +242,15 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 
 
+		let testCases: TestCase[] = [];
+
 		const outputChannel = vscode.window.createOutputChannel('Sikraken Test Inputs');
 		try {
 			const testInputFiles = (await fs.readdir(outputPath))
 				.filter((entry) => entry.startsWith('test_input-') && entry.endsWith('.xml'))
 				.sort();
 
+			let index = 1;
 			for (const testInputFile of testInputFiles) {
 				const testInput = await fs.readFile(path.join(outputPath, testInputFile), 'utf8');
 				outputChannel.appendLine(`--- ${testInputFile} ---`);
@@ -261,29 +266,59 @@ export function activate(context: vscode.ExtensionContext) {
 				for (let index = 0; index < inputs.length; index++) {
 					const variable = variables[index] ?? `input${index + 1}`;
 					outputChannel.appendLine(`${variable} = ${inputs[index]}`);
+				
 				}
+				// Create test case for each input
+				const testCaseName = `test_case_${index}`;
+				const testCaseBody = `TEST_ASSERT_EQUAL(EXPECTED_RES, ${transformedFunction.originalName}(${inputs.join(', ')}));`;
+				testCases.push({
+					name: testCaseName,
+					body: testCaseBody
+				});
+				index++;
 			}
 			outputChannel.show(true);
 		} catch (error) {
 			vscode.window.showErrorMessage(`Could not read Sikraken test inputs: ${error}`);
 		}
 
-		vscode.window.showInformationMessage('Test command executed!');
-
 		await fs.rm(tempDirectory, {
 			recursive: true,
 			force: true,
 		});
+		console.log('Removed temporary directory:', tempDirectory);
 		
 		// Generate test cases for each input
+		const unityTestCases = testCases.map(testCase => {return {body: unityTestCaseTemplate(testCase), name: testCase.name};});
+		
+		const testSuiteName = `${transformedFunction.originalName}_test_suite.c`;
+		// Get current file directory
+		const filePath = path.dirname(activeEditor.document.uri.fsPath);
+		const testSuitePath = path.join(filePath, testSuiteName);
+		
+		// Get just the file name of the current file
+		const currentFileName = path.basename(activeEditor.document.uri.fsPath);
+		const testSuiteContent = unityTemplate(unityTestCases, currentFileName);
+		
+		// Write test suite to file
+		await fs.writeFile(testSuitePath, testSuiteContent, 'utf8').catch((error) => {
+			vscode.window.showErrorMessage(`Could not write test suite: ${error}`);
+			return;
+		});
 
+		vscode.window.showInformationMessage(`Test suite generated: ${testSuitePath}`);
+		console.log(`Test suite generated: ${testSuitePath}`);
+
+		// Open the generated test suite in a new editor tab
+		const document = await vscode.workspace.openTextDocument(testSuitePath);
+		await vscode.window.showTextDocument(document);
 	});
 }
 	
 // This method is called when your extension is deactivated
 export function deactivate() {}
 
-function createIndeterminateFunction(functionSource: string): string {
+function createIndeterminateFunction(functionSource: string): TransformedFunction | undefined {
 
 	const leftBracketIndex = functionSource.indexOf('(');
 	const rightBracketIndex = functionSource.indexOf(')', leftBracketIndex);
@@ -295,17 +330,18 @@ function createIndeterminateFunction(functionSource: string): string {
 
 	if (!functionNameMatch) {
 		vscode.window.showErrorMessage('Could not find the function name.');
-		return '';
+		return undefined;
 	}
 
 	const functionName = functionNameMatch[1];
+	
 	const functionNameStart =
 		leftBracketIndex - functionNameMatch[0].length +
 		functionNameMatch[0].indexOf(functionName);
 
 	if (leftBracketIndex === -1 || rightBracketIndex === -1 || bodyStartIndex === -1) {
 		vscode.window.showErrorMessage('Could not parse the selected function.');
-		return '';
+		return undefined;
 	}
 
 	const parameterText = functionSource
@@ -358,5 +394,10 @@ function createIndeterminateFunction(functionSource: string): string {
 		nondeterministicDeclarations +
 		functionWithoutParameters.slice(transformedBodyStart + 1);
 	
-	return nondeterministicPrototypes + '\n\n' + transformedFunction;
+	return {
+		source: nondeterministicPrototypes + '\n\n' + transformedFunction,
+		originalName: functionName,
+		returnType: "",
+		parameters: parsedParameters,
+	};
 }
