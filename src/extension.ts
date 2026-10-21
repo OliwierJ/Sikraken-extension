@@ -1,22 +1,10 @@
 import * as vscode from 'vscode';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { nondeterministicTemplate, unityTemplate, unityTestCaseTemplate } from './templates';
+import { unityTemplate, unityTestCaseTemplate } from './templates';
 import { runSikraken } from './sikrakenRunner';
-
-
-type FunctionParameter = {
-    type: string;
-    name: string;
-    baseType: string;
-};
-
-type TransformedFunction = {
-    source: string;
-    originalName: string;
-    returnType: string;
-    parameters: FunctionParameter[];
-};
+import { createIndeterminateFunction } from './functionTransformer';
+import { extractTestInputs } from './sikrakenXml';
 
 type TestCase = {
 	name: string;
@@ -90,13 +78,7 @@ export function activate(context: vscode.ExtensionContext) {
 				const testInput = await fs.readFile(path.join(outputPath, testInputFile), 'utf8');
 				outputChannel.appendLine(`--- ${testInputFile} ---`);
 
-				const inputRegex = /<input>\s*([\s\S]*?)\s*<\/input>/g;
-				const inputs: string[] = [];
-				let inputMatch: RegExpExecArray | null;
-
-				while ((inputMatch = inputRegex.exec(testInput)) !== null) {
-					inputs.push(inputMatch[1].trim());
-				}
+				const inputs = extractTestInputs(testInput);
 
 				for (let index = 0; index < inputs.length; index++) {
 					const variable = variables[index] ?? `input${index + 1}`;
@@ -175,13 +157,16 @@ export function activate(context: vscode.ExtensionContext) {
 			return;
 		}
 
-		const transformedFunction = createIndeterminateFunction(functionSource);
-		if (!transformedFunction) {
-			vscode.window.showErrorMessage('Failed to transform the selected function.');
+		let transformedFunction;
+		try {
+			transformedFunction = createIndeterminateFunction(functionSource);
+			console.log(transformedFunction);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			vscode.window.showErrorMessage(`Error transforming function: ${message}`);
 			return;
 		}
 
-		console.log(transformedFunction);
 
 		const tempRoot = context.globalStorageUri.fsPath;
 		await fs.mkdir(tempRoot, { recursive: true });
@@ -256,13 +241,7 @@ export function activate(context: vscode.ExtensionContext) {
 				const testInput = await fs.readFile(path.join(outputPath, testInputFile), 'utf8');
 				outputChannel.appendLine(`--- ${testInputFile} ---`);
 
-				const inputRegex = /<input>\s*([\s\S]*?)\s*<\/input>/g;
-				const inputs: string[] = [];
-				let inputMatch: RegExpExecArray | null;
-
-				while ((inputMatch = inputRegex.exec(testInput)) !== null) {
-					inputs.push(inputMatch[1].trim());
-				}
+				const inputs = extractTestInputs(testInput);
 
 				for (let index = 0; index < inputs.length; index++) {
 					const variable = variables[index] ?? `input${index + 1}`;
@@ -319,86 +298,3 @@ export function activate(context: vscode.ExtensionContext) {
 // This method is called when your extension is deactivated
 export function deactivate() {}
 
-function createIndeterminateFunction(functionSource: string): TransformedFunction | undefined {
-
-	const leftBracketIndex = functionSource.indexOf('(');
-	const rightBracketIndex = functionSource.indexOf(')', leftBracketIndex);
-	const bodyStartIndex = functionSource.indexOf('{', rightBracketIndex);
-
-	// Change the function name to main()
-	const functionHeader = functionSource.slice(0, leftBracketIndex);
-	const functionNameMatch = functionHeader.match(/([A-Za-z_]\w*)\s*$/);
-
-	if (!functionNameMatch) {
-		vscode.window.showErrorMessage('Could not find the function name.');
-		return undefined;
-	}
-
-	const functionName = functionNameMatch[1];
-	
-	const functionNameStart =
-		leftBracketIndex - functionNameMatch[0].length +
-		functionNameMatch[0].indexOf(functionName);
-
-	if (leftBracketIndex === -1 || rightBracketIndex === -1 || bodyStartIndex === -1) {
-		vscode.window.showErrorMessage('Could not parse the selected function.');
-		return undefined;
-	}
-
-	const parameterText = functionSource
-		.slice(leftBracketIndex + 1, rightBracketIndex)
-		.trim();
-
-	const parameters = parameterText && parameterText !== 'void'
-		? parameterText.split(',').map(parameter => parameter.trim())
-		: [];
-
-	const parameterRegex =
-		/^((?:(?:const|unsigned|signed)\s+)*(?:int|char|float))\s+([A-Za-z_]\w*)$/;
-
-	const parsedParameters = parameters.map(parameter => {
-		const match = parameter.match(parameterRegex);
-
-		if (!match) {
-			throw new Error(`Unsupported parameter: ${parameter}`);
-		}
-
-		return {
-			type: match[1],
-			name: match[2],
-			baseType: match[1].match(/\b(int|char|float)\b/)![1],
-		};
-	});
-
-	const nondeterministicDeclarations = parsedParameters
-		.map(parameter => nondeterministicTemplate(parameter))
-		.join('\n');
-
-	const functionWithoutParameters =
-		functionSource.slice(0, functionNameStart) +
-		'main' +
-		functionSource.slice(functionNameStart + functionName.length, leftBracketIndex + 1) +
-		')' +
-		functionSource.slice(rightBracketIndex + 1);
-
-	const transformedBodyStart = functionWithoutParameters.indexOf('{');
-
-	const nondeterministicPrototypes = [...new Set(parsedParameters.map(parameter => parameter.baseType))]
-		.map(baseType =>
-			`extern ${baseType} __VERIFIER_nondet_${baseType}();`
-		)
-		.join('\n');
-
-	const transformedFunction = 
-		functionWithoutParameters.slice(0, transformedBodyStart + 1) +
-		'\n' +
-		nondeterministicDeclarations +
-		functionWithoutParameters.slice(transformedBodyStart + 1);
-	
-	return {
-		source: nondeterministicPrototypes + '\n\n' + transformedFunction,
-		originalName: functionName,
-		returnType: "",
-		parameters: parsedParameters,
-	};
-}
