@@ -3,7 +3,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { unityTemplate, unityTestCaseTemplate } from './templates';
 import { runSikraken } from './sikrakenRunner';
-import { createIndeterminateFunction } from './functionTransformer';
+import { createIndeterminateFunction, parseFunctionSymbols } from './documentTransformer';
 import { extractTestInputs } from './sikrakenXml';
 
 export type TestFunction = {
@@ -109,55 +109,15 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 
 		// Get the selected function
-		const selectedFileURI = activeEditor.document.uri;
-		const selection = activeEditor.selection;
-
-		const position = selection.active;
-
-		let functionSymbol: vscode.DocumentSymbol | undefined;
-		let functionSource: string | undefined;
-		try {
-			const symbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
-				'vscode.executeDocumentSymbolProvider',
-				selectedFileURI
-			);
-
-			functionSymbol = symbols?.flatMap(symbol =>
-					'children' in symbol ? [symbol, ...symbol.children] : [symbol]
-				)
-				.find(symbol =>
-					symbol.kind === vscode.SymbolKind.Function &&
-					symbol.range.contains(position)
-				);
-
-			if (!functionSymbol) {
-				vscode.window.showInformationMessage(
-					'Place the cursor inside a function.'
-				);
-				return;
-			}
-
-			// Ignore main function for now
-			if (functionSymbol.name === 'main()') {
-				vscode.window.showInformationMessage(
-					'Generating tests for the main function is not supported.'
-				);
-				return;
-			}
-
-			functionSource = activeEditor.document.getText(functionSymbol.range);
-
-			console.log(`Selected function: ${functionSymbol.name}`);
-			console.log(functionSource);
-		} catch (error) {
-			console.error('Failed to fetch symbols:', error);
-		}
-
-		// Replace function parameters with indeterminate variables
-		if (!functionSource) {
+		const functionSymbol = await parseFunctionSymbols(activeEditor);
+		if (!functionSymbol) {
+			vscode.window.showInformationMessage('No function selected.');
 			return;
-		}
+		}		
+		const functionSource = activeEditor.document.getText(functionSymbol.range);
 
+		
+		// Replace function parameters with indeterminate variables
 		let transformedFunction;
 		try {
 			transformedFunction = createIndeterminateFunction(functionSource);

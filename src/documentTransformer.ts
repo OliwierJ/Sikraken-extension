@@ -1,4 +1,5 @@
 import { nondeterministicTemplate } from "./templates";
+import * as vscode from 'vscode';
 
 export type FunctionParameter = {
     type: string;
@@ -12,6 +13,51 @@ export type TransformedFunction = {
     returnType: string;
     parameters: FunctionParameter[];
 };
+
+
+export async function parseFunctionSymbols(activeEditor: vscode.TextEditor) {
+	let functionSymbol: vscode.DocumentSymbol | undefined;
+	const selectedFileURI = activeEditor.document.uri;
+	const position = activeEditor.selection.active;
+
+	try {
+		const symbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
+			'vscode.executeDocumentSymbolProvider',
+			selectedFileURI
+		);
+
+		functionSymbol = symbols?.flatMap(symbol =>
+				'children' in symbol ? [symbol, ...symbol.children] : [symbol]
+			)
+			.find(symbol =>
+				symbol.kind === vscode.SymbolKind.Function &&
+				symbol.range.contains(position)
+			);
+
+		if (!functionSymbol) {
+			vscode.window.showInformationMessage(
+				'Place the cursor inside a function.'
+			);
+			return;
+		}
+
+		// Ignore main function for now
+		if (functionSymbol.name === 'main()') {
+			vscode.window.showInformationMessage(
+				'Generating tests for the main function is not supported.'
+			);
+			return;
+		}
+
+
+		console.log(`Selected function: ${functionSymbol.name}`);
+	} catch (error) {
+		console.error('Failed to fetch symbols:', error);
+	}
+
+	return functionSymbol;
+}
+
 
 export function createIndeterminateFunction(functionSource: string): TransformedFunction {
 
