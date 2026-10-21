@@ -42,7 +42,7 @@ export function activate(context: vscode.ExtensionContext) {
 			const result = await runSikraken({
 				scriptPath: sikrakenScriptPath,
 				inputPath: filePath,
-				outputKey: fileName,
+				outputFileName: fileName,
 				outputDir: outputDir,
 			});
 
@@ -155,7 +155,7 @@ export function activate(context: vscode.ExtensionContext) {
 			const result = await runSikraken({
 				scriptPath: sikrakenScriptPath,
 				inputPath: tempFilePath,
-				outputKey: tempFileBaseName,
+				outputFileName: tempFileBaseName,
 				outputDir: outputDir,
 			});
 

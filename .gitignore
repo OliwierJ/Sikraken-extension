@@ -6,10 +6,6 @@ eslint.config.mjs
 vsc-extension-quickstart.md
 .env
 .vscodeignore
-lib/sikraken/eclipse
-lib/sikraken/PTC-Solver
-lib/sikraken/sikraken_output/**
-lib/sikraken/sikraken_output
 .agents.md
 lib/
 SampleCode/unity

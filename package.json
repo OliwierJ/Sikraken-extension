@@ -25,12 +25,12 @@
     "menus": {
       "editor/context": [
         {
-          "when": "editorHasDefinitionProvider && editorTextFocus",
+          "when": "editorHasDefinitionProvider && editorTextFocus && editorLangId == c",
           "command": "sikraken.runSikrakenOnFile",
           "group": "navigation@10"
         },
         {
-          "when": "editorHasDefinitionProvider && editorTextFocus",
+          "when": "editorHasDefinitionProvider && editorTextFocus && editorLangId == c",
           "command": "sikraken.generateTestsOnFunction",
           "group": "navigation@10"
         }
