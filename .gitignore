@@ -12,3 +12,5 @@ lib/sikraken/sikraken_output/**
 lib/sikraken/sikraken_output
 .agents.md
 lib/
+SampleCode/unity
+SampleCode/*test_suite.c

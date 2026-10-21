@@ -15,6 +15,7 @@ type RunnerOptions = {
 	scriptPath: string;
 	inputPath: string;
 	outputKey: string;
+	outputDir: string;
 	budget?: number;
 };
 
@@ -27,6 +28,7 @@ export async function runSikraken(options: RunnerOptions): Promise<SikrakenRun> 
 		options.scriptPath,
 		'release',
 		`budget[${budget}]`,
+		`--output-dir=${options.outputDir}`,
 		options.inputPath,
 	], {
 		windowsHide: true,

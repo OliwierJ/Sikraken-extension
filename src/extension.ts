@@ -43,7 +43,9 @@ export function activate(context: vscode.ExtensionContext) {
 		const fileName = path.basename(filePath, path.extname(filePath));
 
 		const sikrakenScriptPath = context.asAbsolutePath('lib/sikraken/bin/sikraken.sh');
-		const outputPath = path.join(context.extensionPath, 'lib/sikraken/sikraken_output', fileName, 'test-suite');
+		const outputDir = path.join(context.globalStorageUri.fsPath, '/sikraken_output');
+
+		const outputPath = path.join(outputDir, fileName, 'test-suite');
 
 		// Invoke Sikraken script with the selected file
 		try {
@@ -51,6 +53,7 @@ export function activate(context: vscode.ExtensionContext) {
 				scriptPath: sikrakenScriptPath,
 				inputPath: filePath,
 				outputKey: fileName,
+				outputDir: outputDir,
 			});
 
 			if (result.stderr && result.stderr.trim()) {
@@ -197,12 +200,9 @@ export function activate(context: vscode.ExtensionContext) {
 			path.extname(tempFilePath)
 		);
 
-		const outputPath = path.join(
-			context.extensionPath,
-			'lib/sikraken/sikraken_output',
-			tempFileBaseName,
-			'test-suite'
-		);
+		const outputDir = path.join(context.globalStorageUri.fsPath, '/sikraken_output');
+
+		const outputPath = path.join(outputDir, tempFileBaseName, 'test-suite');
 
 		// Test to see if the temp file exists
 		const tempFileExists = await fs.access(tempFilePath, fs.constants.F_OK).then(() => true).catch(() => false);
@@ -216,6 +216,7 @@ export function activate(context: vscode.ExtensionContext) {
 				scriptPath: sikrakenScriptPath,
 				inputPath: tempFilePath,
 				outputKey: tempFileBaseName,
+				outputDir: outputDir,
 			});
 
 			if (result.stderr && result.stderr.trim()) {
