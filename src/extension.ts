@@ -5,6 +5,7 @@ import { unityTemplate, unityTestCaseTemplate } from './templates';
 import { runSikraken } from './sikrakenRunner';
 import { createIndeterminateFunction, parseFunctionSymbols } from './documentTransformer';
 import { extractTestInputs } from './sikrakenXml';
+import { extractNondeterministicVariables } from './variableNames';
 
 export type TestFunction = {
 	name: string;
@@ -59,14 +60,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		// Find indeterminate variables from source file
 		const sourceCode = await fs.readFile(filePath, 'utf8');
-		const variableRegex = /\b([A-Za-z_]\w*)\s*=\s*__VERIFIER_nondet_\w+\s*\(\s*\)\s*;/g;
-
-		const variables: string[] = [];
-		let variableMatch: RegExpExecArray | null;
-
-		while ((variableMatch = variableRegex.exec(sourceCode)) !== null) {
-			variables.push(variableMatch[1]);
-		}
+		const variables = extractNondeterministicVariables(sourceCode);
 
 
 		const outputChannel = vscode.window.createOutputChannel('Sikraken Test Inputs');
@@ -179,14 +173,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		// Find indeterminate variables from source file
 		const sourceCode = await fs.readFile(tempFilePath, 'utf8');
-		const variableRegex = /\b([A-Za-z_]\w*)\s*=\s*__VERIFIER_nondet_\w+\s*\(\s*\)\s*;/g;
-
-		const variables: string[] = [];
-		let variableMatch: RegExpExecArray | null;
-
-		while ((variableMatch = variableRegex.exec(sourceCode)) !== null) {
-			variables.push(variableMatch[1]);
-		}
+		const variables = extractNondeterministicVariables(sourceCode);
 
 		let testCases: TestFunction[] = [];
 
