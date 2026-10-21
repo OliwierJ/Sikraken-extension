@@ -1,9 +1,16 @@
+import { FunctionParameter } from "./functionTransformer";
 
-export const nondeterministicTemplate = (parameter: { type: string; name: string; baseType: string }) =>
+
+export type TestCase = {
+    name: string;
+    body: string;
+};
+
+export const nondeterministicTemplate = (parameter: FunctionParameter) =>
 	`\t${parameter.type} ${parameter.name} = ` + `__VERIFIER_nondet_${parameter.baseType}();`;
 
 
-export const unityTemplate = (testCases: { body: string, name: string }[], include: string) => 
+export const unityTemplate = (testCases: TestCase[], include: string) => 
 `#include "unity.h"
 ${include ? `#include "${include}"` : ''}\n
 void setUp(void) {}

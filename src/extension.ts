@@ -6,10 +6,11 @@ import { runSikraken } from './sikrakenRunner';
 import { createIndeterminateFunction } from './functionTransformer';
 import { extractTestInputs } from './sikrakenXml';
 
-type TestCase = {
+export type TestFunction = {
 	name: string;
 	body: string;
 };
+
 
 // This method is called when the extension is activated
 export function activate(context: vscode.ExtensionContext) {
@@ -227,8 +228,7 @@ export function activate(context: vscode.ExtensionContext) {
 			variables.push(variableMatch[1]);
 		}
 
-
-		let testCases: TestCase[] = [];
+		let testCases: TestFunction[] = [];
 
 		const outputChannel = vscode.window.createOutputChannel('Sikraken Test Inputs');
 		try {

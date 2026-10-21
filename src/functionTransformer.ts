@@ -1,6 +1,5 @@
 import { nondeterministicTemplate } from "./templates";
 
-
 export type FunctionParameter = {
     type: string;
     name: string;
@@ -13,7 +12,6 @@ export type TransformedFunction = {
     returnType: string;
     parameters: FunctionParameter[];
 };
-
 
 export function createIndeterminateFunction(functionSource: string): TransformedFunction {
 
