@@ -3,7 +3,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { unityTemplate, unityTestCaseTemplate } from './templates';
 import { runSikraken } from './sikrakenRunner';
-import { createIndeterminateFunction as createHarness, parseFunctionSymbols } from './documentTransformer';
+import { createIndeterminateFunction as createHarness, createIncludeHarness, GeneratedHarness, parseFunction, parseFunctionSymbols } from './documentTransformer';
 import { extractTestInputs } from './sikrakenXml';
 import { extractNondeterministicVariables } from './variableNames';
 import { buildFunctionContext } from './buildFunctionContext';
@@ -113,10 +113,11 @@ export function activate(context: vscode.ExtensionContext) {
 
 		
 		// Replace function parameters with indeterminate variables
-		let transformedFunction;
+		let harness: GeneratedHarness;
 		try {
-			transformedFunction = createHarness(functionContext);
-			console.log(transformedFunction);
+			const parsedFunction = parseFunction(functionContext);
+			harness = createIncludeHarness(functionContext, parsedFunction);
+			console.log(harness);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			vscode.window.showErrorMessage(`Error transforming function: ${message}`);
@@ -133,7 +134,7 @@ export function activate(context: vscode.ExtensionContext) {
 		const tempFileName = `main-${requestId}.c`;
 		const tempFilePath = path.join(tempDirectory, tempFileName);
 
-		await fs.writeFile(tempFilePath, transformedFunction.source, 'utf8');
+		await fs.writeFile(tempFilePath, harness.source, 'utf8');
 		const sikrakenScriptPath = context.asAbsolutePath('lib/sikraken/bin/sikraken.sh');
 
 		const tempFileBaseName = path.basename(
@@ -198,7 +199,7 @@ export function activate(context: vscode.ExtensionContext) {
 				}
 				// Create test case for each input
 				const testCaseName = `test_case_${index}`;
-				const testCaseBody = `TEST_ASSERT_EQUAL(EXPECTED_RES, ${transformedFunction.originalName}(${inputs.join(', ')}));`;
+				const testCaseBody = `TEST_ASSERT_EQUAL(EXPECTED_RES, ${harness.originalName}(${inputs.join(', ')}));`;
 				testCases.push({
 					name: testCaseName,
 					body: testCaseBody
@@ -219,7 +220,7 @@ export function activate(context: vscode.ExtensionContext) {
 		// Generate test cases for each input
 		const unityTestCases = testCases.map(testCase => {return {body: unityTestCaseTemplate(testCase), name: testCase.name};});
 		
-		const testSuiteName = `${transformedFunction.originalName}_test_suite.c`;
+		const testSuiteName = `${harness.originalName}_test_suite.c`;
 		// Get current file directory
 		const filePath = path.dirname(activeEditor.document.uri.fsPath);
 		const testSuitePath = path.join(filePath, testSuiteName);

@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { FunctionParameter } from './documentTransformer';
 
 export type CompilerContext = {
     workingDirectory: string;
@@ -46,9 +47,4 @@ export type FunctionContext = {
     includes: string[];
     compiler: CompilerContext;
     dependencies: FunctionDependency[];
-};
-
-export type FunctionParameter = {
-    name: string;
-    type: string;
 };

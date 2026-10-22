@@ -15,6 +15,16 @@ export type TransformedFunction = {
     parameters: FunctionParameter[];
 };
 
+export type GeneratedHarness = {
+    source: string;
+    originalName: string;
+    parameters: FunctionParameter[];
+};
+
+export type ParsedFunction = {
+    name: string;
+    parameters: FunctionParameter[];
+};
 
 export async function parseFunctionSymbols(activeEditor: vscode.TextEditor) {
 	let functionSymbol: vscode.DocumentSymbol | undefined;
@@ -59,6 +69,105 @@ export async function parseFunctionSymbols(activeEditor: vscode.TextEditor) {
 	return functionSymbol;
 }
 
+
+export function parseFunction(
+    functionContext: FunctionContext,
+): ParsedFunction {
+    const functionSource = functionContext.selectedFunction.source;
+
+    const leftBracketIndex = functionSource.indexOf('(');
+    const rightBracketIndex = functionSource.indexOf(')', leftBracketIndex);
+
+    if (leftBracketIndex === -1 || rightBracketIndex === -1) {
+        throw new Error('Could not parse the function signature.');
+    }
+
+    const functionHeader = functionSource.slice(0, leftBracketIndex);
+    const functionNameMatch = functionHeader.match(/([A-Za-z_]\w*)\s*$/);
+
+    if (!functionNameMatch) {
+        throw new Error('Could not parse the function name.');
+    }
+
+    const parameterText = functionSource
+        .slice(leftBracketIndex + 1, rightBracketIndex)
+        .trim();
+
+    const parameters = parameterText && parameterText !== 'void'
+        ? parameterText.split(',').map(parameter => parameter.trim())
+        : [];
+
+    const parameterRegex =
+        /^((?:(?:const|unsigned|signed)\s+)*(?:int|char|float))\s+([A-Za-z_]\w*)$/;
+
+    const parsedParameters = parameters.map(parameter => {
+        const match = parameter.match(parameterRegex);
+
+        if (!match) {
+            throw new Error(`Unsupported parameter: ${parameter}`);
+        }
+
+        return {
+            type: match[1],
+            name: match[2],
+            baseType: match[1].match(/\b(int|char|float)\b/)![1],
+        };
+    });
+
+    return {
+        name: functionNameMatch[1],
+        parameters: parsedParameters,
+    };
+}
+
+export function createIncludeHarness(context: FunctionContext, parsedFunction: ParsedFunction): GeneratedHarness {
+    const sourcePath = toCStringLiteral(context.sourceFile.path);
+    const hasMain = /\bmain\s*\(/.test(context.sourceFile.source);
+
+    const mainRename = hasMain ? '#define main sikraken_original_main\n' : '';
+
+    const mainRestore = hasMain ? '\n#undef main\n' : '';
+
+    const nondeterministicDeclarations = parsedFunction.parameters
+        .map(parameter => nondeterministicTemplate(parameter))
+        .join('\n');
+
+    const nondeterministicPrototypes = [
+        ...new Set(
+            parsedFunction.parameters.map(parameter => parameter.baseType),
+        )].map(type => `extern ${type} __VERIFIER_nondet_${type}(void);`)
+        .join('\n');
+
+    const argumentsList = parsedFunction.parameters
+        .map(parameter => parameter.name)
+        .join(', ');
+
+    const source = [
+        mainRename,
+        `#include ${sourcePath}`,
+        mainRestore,
+        '',
+        nondeterministicPrototypes,
+        '',
+        'int main(void)',
+        '{',
+        nondeterministicDeclarations,
+        '',
+        `\t${parsedFunction.name}(${argumentsList});`,
+        '\treturn 0;',
+        '}',
+    ].join('\n');
+
+    return {
+        source,
+        originalName: parsedFunction.name,
+        parameters: parsedFunction.parameters,
+    };
+}
+
+function toCStringLiteral(value: string): string {
+    return `"${value.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
+}
 
 export function createIndeterminateFunction(functionContext: FunctionContext): TransformedFunction {
 	const functionSource = functionContext.selectedFunction.source;
