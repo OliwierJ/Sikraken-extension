@@ -1,3 +1,4 @@
+import { FunctionContext } from "./functionContext";
 import { nondeterministicTemplate } from "./templates";
 import * as vscode from 'vscode';
 
@@ -42,7 +43,7 @@ export async function parseFunctionSymbols(activeEditor: vscode.TextEditor) {
 		}
 
 		// Ignore main function for now
-		if (functionSymbol.name === 'main()') {
+		if (functionSymbol.name === 'main()' || functionSymbol.name === 'main' || functionSymbol.name === 'main(void)') {
 			vscode.window.showInformationMessage(
 				'Generating tests for the main function is not supported.'
 			);
@@ -59,7 +60,8 @@ export async function parseFunctionSymbols(activeEditor: vscode.TextEditor) {
 }
 
 
-export function createIndeterminateFunction(functionSource: string): TransformedFunction {
+export function createIndeterminateFunction(functionContext: FunctionContext): TransformedFunction {
+	const functionSource = functionContext.selectedFunction.source;
 
 	const leftBracketIndex = functionSource.indexOf('(');
 	const rightBracketIndex = functionSource.indexOf(')', leftBracketIndex);

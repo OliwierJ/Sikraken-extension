@@ -3,9 +3,10 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { unityTemplate, unityTestCaseTemplate } from './templates';
 import { runSikraken } from './sikrakenRunner';
-import { createIndeterminateFunction, parseFunctionSymbols } from './documentTransformer';
+import { createIndeterminateFunction as createHarness, parseFunctionSymbols } from './documentTransformer';
 import { extractTestInputs } from './sikrakenXml';
 import { extractNondeterministicVariables } from './variableNames';
+import { buildFunctionContext } from './buildFunctionContext';
 
 export type TestFunction = {
 	name: string;
@@ -108,13 +109,13 @@ export function activate(context: vscode.ExtensionContext) {
 			vscode.window.showInformationMessage('No function selected.');
 			return;
 		}		
-		const functionSource = activeEditor.document.getText(functionSymbol.range);
+		const functionContext = await buildFunctionContext(activeEditor, functionSymbol);
 
 		
 		// Replace function parameters with indeterminate variables
 		let transformedFunction;
 		try {
-			transformedFunction = createIndeterminateFunction(functionSource);
+			transformedFunction = createHarness(functionContext);
 			console.log(transformedFunction);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
