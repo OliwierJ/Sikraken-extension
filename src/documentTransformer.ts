@@ -89,6 +89,15 @@ export function parseFunction(
         throw new Error('Could not parse the function name.');
     }
 
+    const returnType = functionHeader
+        .slice(0, functionNameMatch.index)
+        .trim()
+        .replace(/^(?:(?:static|inline|extern)\s+)+/, '');
+
+    if (!/^(?:(?:const|unsigned|signed)\s+)*(?:int|char|float)$/.test(returnType)) {
+        throw new Error(`Unsupported function return type: ${returnType || 'unknown'}`);
+    }
+
     const parameterText = functionSource
         .slice(leftBracketIndex + 1, rightBracketIndex)
         .trim();

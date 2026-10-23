@@ -163,6 +163,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 			if (result.stderr && result.stderr.trim()) {
 				console.warn(`Sikraken stderr: ${result.stderr}`);
+				vscode.window.showErrorMessage(
+					`Sikraken could not process the selected function: ${result.stderr.trim()}`,
+				);
+				return;
 			}
 			if (result.stdout && result.stdout.trim()) {
 				console.log(`Sikraken stdout: ${result.stdout}`);
@@ -246,4 +250,3 @@ export function activate(context: vscode.ExtensionContext) {
 	
 // This method is called when your extension is deactivated
 export function deactivate() {}
-

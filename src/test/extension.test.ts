@@ -5,6 +5,8 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { extractTestInputs } from '../sikrakenXml';
 import { extractNondeterministicVariables } from '../variableNames';
+import { parseFunction } from '../documentTransformer';
+import type { FunctionContext } from '../functionContext';
 
 suite('Extension Test Suite', () => {
 	vscode.window.showInformationMessage('Start all tests.');
@@ -22,5 +24,18 @@ suite('Extension Test Suite', () => {
 		].join('\n');
 
 		assert.deepStrictEqual(extractNondeterministicVariables(source), ['x', 'result']);
+	});
+
+	test('rejects function return types that cannot be used by generated assertions', () => {
+		const context = {
+			selectedFunction: {
+				source: 'void reset(int value) { }',
+			},
+		} as FunctionContext;
+
+		assert.throws(
+			() => parseFunction(context),
+			/Unsupported function return type: void/,
+		);
 	});
 });
