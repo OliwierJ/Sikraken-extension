@@ -6,7 +6,58 @@ export type FunctionParameter = {
     type: string;
     name: string;
     baseType: string;
+    nondeterministicName: string;
 };
+
+type SupportedCType = {
+    name: string;
+    nondeterministicName: string;
+};
+
+const SUPPORTED_C_TYPES: SupportedCType[] = [
+    { name: 'char', nondeterministicName: 'char' },
+    { name: 'short', nondeterministicName: 'short' },
+    { name: 'int', nondeterministicName: 'int' },
+    { name: 'long', nondeterministicName: 'long' },
+    { name: 'long long', nondeterministicName: 'long_long' },
+    { name: 'float', nondeterministicName: 'float' },
+    { name: 'double', nondeterministicName: 'double' },
+];
+
+const TYPE_QUALIFIERS = ['const', 'unsigned', 'signed'] as const;
+const supportedTypeNames = SUPPORTED_C_TYPES
+    .map(type => type.name.replaceAll(' ', '\\s+'))
+    .sort((left, right) => right.length - left.length)
+    .join('|');
+const typeQualifierPattern = `(?:(?:${TYPE_QUALIFIERS.join('|')})\\s+)*`;
+const supportedTypePattern = `${typeQualifierPattern}(?:${supportedTypeNames})`;
+const supportedTypeRegex = new RegExp(`^(${supportedTypePattern})$`);
+const supportedTypeWithNameRegex = new RegExp(
+    `^(${supportedTypePattern})\\s+([A-Za-z_]\\w*)$`,
+);
+
+function parseSupportedType(type: string): SupportedCType | undefined {
+    const normalizedType = type.trim().replace(/\s+/g, ' ');
+    const baseType = SUPPORTED_C_TYPES.find(
+        supportedType => supportedType.name === normalizedType ||
+            normalizedType.endsWith(` ${supportedType.name}`),
+    );
+
+    return baseType;
+}
+
+function getSupportedType(type: string, description: string): SupportedCType {
+    if (!supportedTypeRegex.test(type)) {
+        throw new Error(`Unsupported ${description}: ${type}`);
+    }
+
+    const supportedType = parseSupportedType(type);
+    if (!supportedType) {
+        throw new Error(`Unsupported ${description}: ${type}`);
+    }
+
+    return supportedType;
+}
 
 export type TransformedFunction = {
     source: string;
@@ -94,9 +145,7 @@ export function parseFunction(
         .trim()
         .replace(/^(?:(?:static|inline|extern)\s+)+/, '');
 
-    if (!/^(?:(?:const|unsigned|signed)\s+)*(?:int|char|float)$/.test(returnType)) {
-        throw new Error(`Unsupported function return type: ${returnType || 'unknown'}`);
-    }
+    getSupportedType(returnType, 'function return type');
 
     const parameterText = functionSource
         .slice(leftBracketIndex + 1, rightBracketIndex)
@@ -106,20 +155,19 @@ export function parseFunction(
         ? parameterText.split(',').map(parameter => parameter.trim())
         : [];
 
-    const parameterRegex =
-        /^((?:(?:const|unsigned|signed)\s+)*(?:int|char|float))\s+([A-Za-z_]\w*)$/;
-
     const parsedParameters = parameters.map(parameter => {
-        const match = parameter.match(parameterRegex);
+        const match = parameter.match(supportedTypeWithNameRegex);
 
         if (!match) {
             throw new Error(`Unsupported parameter: ${parameter}`);
         }
 
+        const supportedType = getSupportedType(match[1], 'parameter type');
         return {
             type: match[1],
             name: match[2],
-            baseType: match[1].match(/\b(int|char|float)\b/)![1],
+            baseType: match[1],
+            nondeterministicName: supportedType.nondeterministicName,
         };
     });
 
@@ -142,9 +190,15 @@ export function createIncludeHarness(context: FunctionContext, parsedFunction: P
         .join('\n');
 
     const nondeterministicPrototypes = [
-        ...new Set(
-            parsedFunction.parameters.map(parameter => parameter.baseType),
-        )].map(type => `extern ${type} __VERIFIER_nondet_${type}(void);`)
+        ...new Map(
+            parsedFunction.parameters.map(parameter => [
+                parameter.baseType,
+                parameter.nondeterministicName,
+            ]),
+        ),
+    ].map(([type, nondeterministicName]) =>
+        `extern ${type} __VERIFIER_nondet_${nondeterministicName}(void);`,
+    )
         .join('\n');
 
     const argumentsList = parsedFunction.parameters
@@ -210,20 +264,19 @@ export function createIndeterminateFunction(functionContext: FunctionContext): T
 		? parameterText.split(',').map(parameter => parameter.trim())
 		: [];
 
-	const parameterRegex =
-		/^((?:(?:const|unsigned|signed)\s+)*(?:int|char|float))\s+([A-Za-z_]\w*)$/;
-
 	const parsedParameters = parameters.map(parameter => {
-		const match = parameter.match(parameterRegex);
+		const match = parameter.match(supportedTypeWithNameRegex);
 
 		if (!match) {
 			throw new Error(`Unsupported parameter: ${parameter}`);
 		}
 
+		const supportedType = getSupportedType(match[1], 'parameter type');
 		return {
 			type: match[1],
 			name: match[2],
-			baseType: match[1].match(/\b(int|char|float)\b/)![1],
+			baseType: match[1],
+			nondeterministicName: supportedType.nondeterministicName,
 		};
 	});
 
@@ -240,9 +293,14 @@ export function createIndeterminateFunction(functionContext: FunctionContext): T
 
 	const transformedBodyStart = functionWithoutParameters.indexOf('{');
 
-	const nondeterministicPrototypes = [...new Set(parsedParameters.map(parameter => parameter.baseType))]
-		.map(baseType =>
-			`extern ${baseType} __VERIFIER_nondet_${baseType}();`
+	const nondeterministicPrototypes = [...new Map(
+		parsedParameters.map(parameter => [
+			parameter.baseType,
+			parameter.nondeterministicName,
+		]),
+	)]
+		.map(([baseType, nondeterministicName]) =>
+			`extern ${baseType} __VERIFIER_nondet_${nondeterministicName}();`
 		)
 		.join('\n');
 

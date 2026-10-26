@@ -7,7 +7,8 @@ export type TestCase = {
 };
 
 export const nondeterministicTemplate = (parameter: FunctionParameter) =>
-	`\t${parameter.type} ${parameter.name} = ` + `__VERIFIER_nondet_${parameter.baseType}();`;
+	`\t${parameter.type} ${parameter.name} = ` +
+	`__VERIFIER_nondet_${parameter.nondeterministicName}();`;
 
 
 export const unityTemplate = (testCases: TestCase[], include: string) => 
@@ -16,6 +17,7 @@ ${include ? `#include "${include}"` : ''}\n
 void setUp(void) {}
 void tearDown(void) {}
 
+// Test cases. Replace placeholder EXPECTED_RES with the expected result
 ${testCases.map((testCase) => testCase.body).join('\n')}\n
 
 int main(void)

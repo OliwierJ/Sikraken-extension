@@ -4,6 +4,10 @@ This is the README for your extension "test". After writing up a brief descripti
 
 ## Features
 
+The function test generator currently supports scalar C parameters and return
+types: `char`, `short`, `int`, `long`, `long long`, `float`, and `double`.
+Signed, unsigned, and const-qualified forms are supported where valid.
+
 
 ## Requirements
 
@@ -15,4 +19,3 @@ This is the README for your extension "test". After writing up a brief descripti
 
 
 ## Release Notes
-
