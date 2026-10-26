@@ -4,7 +4,9 @@ The Sikraken extension generates C test inputs and Unity test harnesses from
 source files or selected functions. It uses Sikraken symbolic execution to
 explore branches and displays the generated inputs in VS Code.
 
-![Run Sikraken command](docs/images/run-sikraken-placeholder.svg)
+This extension was developed as my final year project.
+
+![Run Sikraken command](docs/images/run_sikraken.png)
 
 ## Features
 
@@ -16,7 +18,7 @@ explore branches and displays the generated inputs in VS Code.
   `char`, `short`, `int`, `long`, `long long`, `float`, and `double`.
 - Support valid signed, unsigned, and `const`-qualified scalar forms.
 
-![Generated test inputs](docs/images/generated-inputs-placeholder.svg)
+![Generated test inputs](docs/images/generated_output.png)
 
 ## Installation
 
