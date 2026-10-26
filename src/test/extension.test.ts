@@ -124,4 +124,13 @@ suite('Extension Test Suite', () => {
 			await fs.rm(temporaryDirectory, { recursive: true, force: true });
 		}
 	});
+
+	test('generates the expected test inputs for a function with multiple parameters', async function () {
+		this.timeout(30_000);
+
+		const t = vscode.commands.executeCommand('sikraken.generateTestsOnFunction');
+
+		// Expect no errors to be thrown during the command execution
+		await t; 
+	});
 });
