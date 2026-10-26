@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="240" viewBox="0 0 960 240" role="img" aria-labelledby="title desc">
+  <title id="title">Run Sikraken command placeholder</title>
+  <desc id="desc">Placeholder for a screenshot of the Run Sikraken command.</desc>
+  <rect width="960" height="240" fill="#252526"/>
+  <rect x="24" y="24" width="912" height="192" rx="8" fill="#333333" stroke="#777777"/>
+  <text x="480" y="112" fill="#ffffff" font-family="sans-serif" font-size="28" text-anchor="middle">Screenshot placeholder</text>
+  <text x="480" y="150" fill="#cccccc" font-family="sans-serif" font-size="18" text-anchor="middle">Run Sikraken / Generate Tests on Function</text>
+</svg>

@@ -3,6 +3,10 @@
   "displayName": "Sikraken Extension",
   "description": "VS Code extension for Sikraken",
   "version": "0.0.1",
+  "contributors": [{
+    "name": "OliwierJ",
+    "email": "oliwierkjak@gmail.com"
+  }],
   "engines": {
     "vscode": "^1.140.0"
   },
