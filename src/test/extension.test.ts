@@ -94,6 +94,42 @@ suite('Extension Test Suite', () => {
 				workingDirectory: temporaryDirectory,
 			});
 
+			test('evaluates a function when the included source main uses verifier inputs', async function () {
+				this.timeout(10_000);
+
+				const temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'sikraken-evaluator-'));
+				try {
+					const sourcePath = path.join(temporaryDirectory, 'functions.c');
+					await fs.writeFile(
+						sourcePath,
+						[
+							'extern int __VERIFIER_nondet_int(void);',
+							'int is_positive(int value) { return value > 0 ? 1 : 0; }',
+							'int main(void) { return __VERIFIER_nondet_int(); }',
+						].join('\n'),
+						'utf8',
+					);
+
+					const result = await evaluateFunctionInput({
+						sourcePath,
+						functionName: 'is_positive',
+						returnType: 'int',
+						parameters: [{
+							type: 'int',
+							name: 'value',
+							baseType: 'int',
+							nondeterministicName: 'int',
+						}],
+						inputs: ['3'],
+						workingDirectory: temporaryDirectory,
+					});
+
+					assert.strictEqual(result, '1');
+				} finally {
+					await fs.rm(temporaryDirectory, { recursive: true, force: true });
+				}
+			});
+
 			assert.strictEqual(result, '1');
 		} finally {
 			await fs.rm(temporaryDirectory, { recursive: true, force: true });

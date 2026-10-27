@@ -78,7 +78,7 @@ export function activate(context: vscode.ExtensionContext) {
 				return;
 			}
 
-			progress.report({ increment: 70, message: 'Extracting test inputs...' });
+			progress.report({ increment: 60, message: 'Extracting test inputs...' });
 			// Find indeterminate variables from source file
 			const sourceCode = await fs.readFile(filePath, 'utf8');
 			const variables = extractNondeterministicVariables(sourceCode);
@@ -192,7 +192,7 @@ export function activate(context: vscode.ExtensionContext) {
 				return;
 			}
 
-			progress.report({ increment: 30, message: 'Running Sikraken...' });
+			progress.report({ increment: 10, message: 'Running Sikraken...' });
 
 			try {
 				const result = await runSikraken({
@@ -249,9 +249,9 @@ export function activate(context: vscode.ExtensionContext) {
 						outputChannel.appendLine(`${variable} = ${inputs[index]}`);
 					
 					}
-					loopProgress = index / testInputFiles.length;
+					loopProgress = testInputFiles.length / 30; // 30% of the progress bar is allocated to extracting test inputs
 
-					progress.report({ increment: 60 + (loopProgress * 30), message: `Extracting test inputs... (${index}/${testInputFiles.length})`});
+					progress.report({ increment: loopProgress, message: `Extracting test inputs... (${index}/${testInputFiles.length})`});
 					// Create test case for each input
 					const testCaseName = `test_case_${index}`;
 					let expectedResult: string;
@@ -293,7 +293,7 @@ export function activate(context: vscode.ExtensionContext) {
 			});
 			console.log('Removed temporary directory:', tempDirectory);
 			
-			progress.report({ increment: 90, message: 'Generating test suite...' });
+			progress.report({ increment: 10, message: 'Generating test suite...' });
 
 			// Generate test cases for each input
 			const unityTestCases = testCases.map(testCase => {return {body: unityTestCaseTemplate(testCase), name: testCase.name};});
