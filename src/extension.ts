@@ -226,6 +226,15 @@ export function activate(context: vscode.ExtensionContext) {
 
 					const inputs = extractTestInputs(testInput);
 
+					// Check to see if there are any inputs
+					if (inputs.length === 0) {
+						vscode.window.showWarningMessage(`Sikraken found no test inputs for ${harness.originalName}. 
+							Sikraken requires at least one branching point in the function to generate test inputs. Please ensure 
+							that the function has at least one branching point (e.g., if statement, loop, etc.) and try again.`
+						);
+						return;
+					}
+
 					for (let index = 0; index < inputs.length; index++) {
 						const variable = variables[index] ?? `input${index + 1}`;
 						outputChannel.appendLine(`${variable} = ${inputs[index]}`);
