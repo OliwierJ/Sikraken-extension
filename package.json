@@ -3,10 +3,12 @@
   "displayName": "Sikraken Extension",
   "description": "VS Code extension for Sikraken",
   "version": "0.0.1",
-  "contributors": [{
-    "name": "OliwierJ",
-    "email": "oliwierkjak@gmail.com"
-  }],
+  "contributors": [
+    {
+      "name": "OliwierJ",
+      "email": "oliwierkjak@gmail.com"
+    }
+  ],
   "engines": {
     "vscode": "^1.140.0"
   },
@@ -44,20 +46,42 @@
       "title": "Sikraken Extension",
       "type": "object",
       "properties": {
-        "sikraken.framework" : {
+        "sikraken.framework": {
           "type": "string",
-          "enum": ["Unity"],
+          "enum": [
+            "Unity"
+          ],
           "markdownEnumDescriptions": [
-          "Unity C Unit Test Framework"
-        ],
-        "enumItemLabels": [
-          "Unity"
-        ],
-        "default": "Unity",
-        "description": "Select the framework to use for generating test cases."
+            "Unity C Unit Test Framework"
+          ],
+          "enumItemLabels": [
+            "Unity"
+          ],
+          "default": "Unity",
+          "description": "Select the framework to use for generating test cases."
+        },
+        "sikraken.testGenerationMode": {
+          "type": "string",
+          "enum": [
+            "prompt",
+            "characterization",
+            "userSpecified"
+          ],
+          "markdownEnumDescriptions": [
+            "Ask the user each time they generate test cases",
+            "Automatically generate characterization tests for the function",
+            "Place placeholder test cases and let the user specify the expected results"
+          ],
+          "enumItemLabels": [
+            "Prompt",
+            "Characterization",
+            "User Specified"
+          ],
+          "description": "Select the mode for generating test cases.",
+          "default": "prompt"
+        }
       }
     }
-  }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

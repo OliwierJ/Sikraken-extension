@@ -113,6 +113,32 @@ export function activate(context: vscode.ExtensionContext) {
 	
 	
 	vscode.commands.registerCommand('sikraken.generateTestsOnFunction', async () => {
+		const activeEditor = vscode.window.activeTextEditor;
+		if (!activeEditor) {
+			return;
+		}
+
+		// Check if the active editor is a C file
+		if (activeEditor.document.languageId !== 'c') {
+			vscode.window.showInformationMessage('This command only works for C files.');
+			return;
+		}
+		
+		// Check extension settings to determine whether to show the prompt
+		const testGenerationSettings = vscode.workspace.getConfiguration('sikraken').get('testGenerationMode');
+		let generateOutputs = true; // Default to true
+		if (testGenerationSettings === 'prompt') {
+			const userChoice = await vscode.window.showQuickPick(['Yes [default]', 'No'], {
+				placeHolder: 'Generate expected outputs for selected function?'
+			});
+			if (userChoice === 'No') {
+				generateOutputs = false;
+			}
+		}
+		if (testGenerationSettings === 'userSpecified') {
+			generateOutputs = false;
+		}
+		
 		vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
 			title: 'Generating test suite...',
@@ -127,17 +153,6 @@ export function activate(context: vscode.ExtensionContext) {
 				await fs.rm(tempDirectory, { recursive: true });
 				return;
 			});
-
-			const activeEditor = vscode.window.activeTextEditor;
-			if (!activeEditor) {
-				return;
-			}
-
-			// Check if the active editor is a C file
-			if (activeEditor.document.languageId !== 'c') {
-				vscode.window.showInformationMessage('This command only works for C files.');
-				return;
-			}
 
 			progress.report({ increment: 10, message: 'Parsing function...' });
 
@@ -249,37 +264,53 @@ export function activate(context: vscode.ExtensionContext) {
 						outputChannel.appendLine(`${variable} = ${inputs[index]}`);
 					
 					}
-					loopProgress = testInputFiles.length / 30; // 30% of the progress bar is allocated to extracting test inputs
 
-					progress.report({ increment: loopProgress, message: `Extracting test inputs... (${index}/${testInputFiles.length})`});
-					// Create test case for each input
 					const testCaseName = `test_case_${index}`;
-					let expectedResult: string;
-					try {
-						expectedResult = await evaluateFunctionInput({
-							sourcePath: functionContext.sourceFile.path,
-							functionName: harness.originalName,
-							returnType: parsedFunction.returnType,
-							parameters: harness.parameters,
-							inputs,
-							workingDirectory: tempDirectory,
-						});
-					} catch (error) {
-						const message = error instanceof Error ? error.message : String(error);
-						vscode.window.showErrorMessage(
-							`Could not evaluate ${testInputFile}: ${message}`,
+					let expectedResult = "EXPECTED_RESULT";
+
+					loopProgress = testInputFiles.length / 30; // 30% of the progress bar is allocated to extracting test inputs
+					progress.report({ increment: loopProgress, message: `Extracting test inputs... (${index}/${testInputFiles.length})`});
+					
+					if (generateOutputs) {
+
+						// Create test case for each input
+						try {
+							expectedResult = await evaluateFunctionInput({
+								sourcePath: functionContext.sourceFile.path,
+								functionName: harness.originalName,
+								returnType: parsedFunction.returnType,
+								parameters: harness.parameters,
+								inputs,
+								workingDirectory: tempDirectory,
+							});
+						} catch (error) {
+							const message = error instanceof Error ? error.message : String(error);
+							vscode.window.showErrorMessage(
+								`Could not evaluate ${testInputFile}: ${message}`,
+							);
+							return;
+						}
+						const testCaseBody = unityAssertionTemplate(
+							expectedResult,
+							`${harness.originalName}(${inputs.join(', ')})`,
+							parsedFunction.returnType,
 						);
-						return;
+						testCases.push({
+							name: testCaseName,
+							body: testCaseBody
+						});
+					} else {
+						const testCaseBody = unityAssertionTemplate(
+							expectedResult,
+							`${harness.originalName}(${inputs.join(', ')})`,
+							parsedFunction.returnType,
+						);
+						testCases.push({
+							name: testCaseName,
+							body: testCaseBody
+						});
 					}
-					const testCaseBody = unityAssertionTemplate(
-						expectedResult,
-						`${harness.originalName}(${inputs.join(', ')})`,
-						parsedFunction.returnType,
-					);
-					testCases.push({
-						name: testCaseName,
-						body: testCaseBody
-					});
+					
 					index++;
 				}
 				outputChannel.show(true);
