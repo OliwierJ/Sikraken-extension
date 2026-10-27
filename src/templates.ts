@@ -17,7 +17,8 @@ ${include ? `#include "${include}"` : ''}\n
 void setUp(void) {}
 void tearDown(void) {}
 
-// Test cases. Replace placeholder EXPECTED_RES with the expected result
+// Expected values were captured by executing the current implementation.
+// These are characterization tests, not independent correctness proofs.
 ${testCases.map((testCase) => testCase.body).join('\n')}\n
 
 int main(void)
@@ -34,3 +35,18 @@ export const unityTestCaseTemplate = (testCase: { name: string, body: string }) 
     ${testCase.body}
 }
 `;
+
+export function unityAssertionTemplate(
+	expected: string,
+	actual: string,
+	returnType: string,
+): string {
+	const normalizedType = returnType.replace(/\s+/g, ' ').trim();
+	const macro = /\bdouble\b/.test(normalizedType)
+		? 'TEST_ASSERT_EQUAL_DOUBLE'
+		: /\bfloat\b/.test(normalizedType)
+			? 'TEST_ASSERT_EQUAL_FLOAT'
+			: 'TEST_ASSERT_EQUAL';
+
+	return `${macro}(${expected}, ${actual});`;
+}

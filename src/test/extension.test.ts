@@ -11,6 +11,7 @@ import { extractNondeterministicVariables } from '../variableNames';
 import { createIncludeHarness, parseFunction } from '../documentTransformer';
 import type { FunctionContext } from '../functionContext';
 import { runSikraken } from '../sikrakenRunner';
+import { evaluateFunctionInput } from '../inputEvaluator';
 
 suite('Extension Test Suite', () => {
 	vscode.window.showInformationMessage('Start all tests.');
@@ -65,6 +66,38 @@ suite('Extension Test Suite', () => {
 		assert.match(harness.source, /extern unsigned long __VERIFIER_nondet_long\(void\);/);
 		assert.match(harness.source, /__VERIFIER_nondet_double\(\)/);
 		assert.match(harness.source, /__VERIFIER_nondet_long\(\)/);
+	});
+
+	test('evaluates a generated scalar input against the source function', async function () {
+		this.timeout(10_000);
+
+		const temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'sikraken-evaluator-'));
+		try {
+			const sourcePath = path.join(temporaryDirectory, 'functions.c');
+			await fs.writeFile(
+				sourcePath,
+				'int classify(int value) { return value > 0 ? 1 : 0; }\nint main(void) { return 0; }\n',
+				'utf8',
+			);
+
+			const result = await evaluateFunctionInput({
+				sourcePath,
+				functionName: 'classify',
+				returnType: 'int',
+				parameters: [{
+					type: 'int',
+					name: 'value',
+					baseType: 'int',
+					nondeterministicName: 'int',
+				}],
+				inputs: ['3'],
+				workingDirectory: temporaryDirectory,
+			});
+
+			assert.strictEqual(result, '1');
+		} finally {
+			await fs.rm(temporaryDirectory, { recursive: true, force: true });
+		}
 	});
 
 	test('generates the expected test inputs for a predetermined function', async function () {

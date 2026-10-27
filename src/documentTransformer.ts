@@ -74,6 +74,7 @@ export type GeneratedHarness = {
 
 export type ParsedFunction = {
     name: string;
+    returnType: string;
     parameters: FunctionParameter[];
 };
 
@@ -173,6 +174,7 @@ export function parseFunction(
 
     return {
         name: functionNameMatch[1],
+        returnType,
         parameters: parsedParameters,
     };
 }

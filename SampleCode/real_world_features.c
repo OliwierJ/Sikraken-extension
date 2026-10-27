@@ -37,6 +37,7 @@ int decode_status_word(
 }
 
 /* Supported: scalar fixed-point conversion with saturation. */
+// Sikraken Error Nb: 1: Sikraken warning level 1 Integer labeling failed
 int millivolts_to_percent(unsigned long millivolts, int calibration_offset)
 {
     long adjusted = (long)millivolts + calibration_offset;

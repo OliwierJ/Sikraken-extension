@@ -1,12 +1,19 @@
 import * as vscode from 'vscode';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { unityTemplate, unityTestCaseTemplate } from './templates';
+import { unityAssertionTemplate, unityTemplate, unityTestCaseTemplate } from './templates';
 import { runSikraken } from './sikrakenRunner';
-import { createIndeterminateFunction as createHarness, createIncludeHarness, GeneratedHarness, parseFunction, parseFunctionSymbols } from './documentTransformer';
+import {
+	createIncludeHarness,
+	GeneratedHarness,
+	parseFunction,
+	parseFunctionSymbols,
+	ParsedFunction,
+} from './documentTransformer';
 import { extractTestInputs } from './sikrakenXml';
 import { extractNondeterministicVariables } from './variableNames';
 import { buildFunctionContext } from './buildFunctionContext';
+import { evaluateFunctionInput } from './inputEvaluator';
 
 export type TestFunction = {
 	name: string;
@@ -145,8 +152,9 @@ export function activate(context: vscode.ExtensionContext) {
 			
 			// Replace function parameters with indeterminate variables
 			let harness: GeneratedHarness;
+			let parsedFunction: ParsedFunction;
 			try {
-				const parsedFunction = parseFunction(functionContext);
+				parsedFunction = parseFunction(functionContext);
 				harness = createIncludeHarness(functionContext, parsedFunction);
 				console.log(harness);
 			} catch (error) {
@@ -207,9 +215,9 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 
 			// Find indeterminate variables from source file
+			progress.report({ increment: 60, message: 'Extracting test inputs...' });
 			const sourceCode = await fs.readFile(tempFilePath, 'utf8');
 			const variables = extractNondeterministicVariables(sourceCode);
-			progress.report({ increment: 70, message: 'Extracting test inputs...' });
 
 			let testCases: TestFunction[] = [];
 
@@ -220,6 +228,7 @@ export function activate(context: vscode.ExtensionContext) {
 					.sort();
 
 				let index = 1;
+				let loopProgress = 0;
 				for (const testInputFile of testInputFiles) {
 					const testInput = await fs.readFile(path.join(outputPath, testInputFile), 'utf8');
 					outputChannel.appendLine(`--- ${testInputFile} ---`);
@@ -240,9 +249,33 @@ export function activate(context: vscode.ExtensionContext) {
 						outputChannel.appendLine(`${variable} = ${inputs[index]}`);
 					
 					}
+					loopProgress = index / testInputFiles.length;
+
+					progress.report({ increment: 60 + (loopProgress * 30), message: `Extracting test inputs... (${index}/${testInputFiles.length})`});
 					// Create test case for each input
 					const testCaseName = `test_case_${index}`;
-					const testCaseBody = `TEST_ASSERT_EQUAL(EXPECTED_RES, ${harness.originalName}(${inputs.join(', ')}));`;
+					let expectedResult: string;
+					try {
+						expectedResult = await evaluateFunctionInput({
+							sourcePath: functionContext.sourceFile.path,
+							functionName: harness.originalName,
+							returnType: parsedFunction.returnType,
+							parameters: harness.parameters,
+							inputs,
+							workingDirectory: tempDirectory,
+						});
+					} catch (error) {
+						const message = error instanceof Error ? error.message : String(error);
+						vscode.window.showErrorMessage(
+							`Could not evaluate ${testInputFile}: ${message}`,
+						);
+						return;
+					}
+					const testCaseBody = unityAssertionTemplate(
+						expectedResult,
+						`${harness.originalName}(${inputs.join(', ')})`,
+						parsedFunction.returnType,
+					);
 					testCases.push({
 						name: testCaseName,
 						body: testCaseBody
