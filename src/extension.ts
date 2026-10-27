@@ -316,13 +316,13 @@ export function activate(context: vscode.ExtensionContext) {
 				outputChannel.show(true);
 			} catch (error) {
 				vscode.window.showErrorMessage(`Could not read Sikraken test inputs: ${error}`);
+			} finally {
+				await fs.rm(tempDirectory, {
+					recursive: true,
+					force: true,
+				});
+				console.log('Removed temporary directory:', tempDirectory);
 			}
-
-			await fs.rm(tempDirectory, {
-				recursive: true,
-				force: true,
-			});
-			console.log('Removed temporary directory:', tempDirectory);
 			
 			progress.report({ increment: 10, message: 'Generating test suite...' });
 
