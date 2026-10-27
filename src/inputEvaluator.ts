@@ -36,12 +36,14 @@ export async function evaluateFunctionInput(options: EvaluateInputOptions): Prom
 	const temporaryDirectory = await fs.mkdtemp(path.join(options.workingDirectory, 'sikraken-eval-'));
 	const driverPath = path.join(temporaryDirectory, 'driver.c');
 	const executablePath = path.join(temporaryDirectory, 'driver');
+	const sourceDirectory = path.dirname(options.sourcePath);
 
 	try {
 		await fs.writeFile(driverPath, driverSource, 'utf8');
 		await execFileAsync('gcc', [
 			'-std=gnu11',
 			'-O0',
+			`-I${sourceDirectory}`,
 			driverPath,
 			'-o',
 			executablePath,
