@@ -1,0 +1,6 @@
+:- module(occur).
+:- export contains / 2.
+:- export freeof / 2.
+:- export patharg / 3.
+:- export position / 3.
+:- export replace / 4.

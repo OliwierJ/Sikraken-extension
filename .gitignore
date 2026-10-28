@@ -7,6 +7,5 @@ vsc-extension-quickstart.md
 .env
 .vscodeignore
 agents.md
-lib/
 SampleCode/unity
 SampleCode/*test_suite.c

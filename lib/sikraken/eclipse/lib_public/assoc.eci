@@ -1,0 +1,21 @@
+:- module(assoc).
+:- export assoc_to_list / 2.
+:- export assoc_to_keys / 2.
+:- export assoc_to_values / 2.
+:- export empty_assoc / 1.
+:- export is_assoc / 1.
+:- export put_assoc / 4.
+:- export gen_assoc / 3.
+:- export get_assoc / 3.
+:- export get_assoc / 5.
+:- export get_next_assoc / 4.
+:- export get_prev_assoc / 4.
+:- export map_assoc / 2.
+:- export map_assoc / 3.
+:- export max_assoc / 3.
+:- export min_assoc / 3.
+:- export list_to_assoc / 2.
+:- export ord_list_to_assoc / 2.
+:- export list_to_assoc / 4.
+:- tool(map_assoc / 3, map_assoc_ / 4).
+:- tool(map_assoc / 2, map_assoc_ / 3).

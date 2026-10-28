@@ -1,0 +1,4 @@
+:- module(order).
+:- export ordered / 1.
+:- export ordered / 2.
+:- tool(ordered / 2, ordered / 3).

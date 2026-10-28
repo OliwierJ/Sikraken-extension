@@ -1,0 +1,17 @@
+:-(module(ptc_scalar)).
+:-(meta_attribute(ptc_scalar,[])).
+:-(local(initialization(meta_attribute(ptc_scalar,[:(unify,/(unify_scalar,2)),:(print,/(print_scalar,2))])))).
+:-(import(from(/(ptc_solver__warning,2),ptc_solver))).
+:-(:(sepia_kernel,store_pred(/(unify_scalar,2),[](o(124),a(2),ref(28),ref(28),ref(fail),ref(fail),ref(fail),ref(fail),ref(fail),ref(fail),ref(fail),ref(fail),ref(fail),ref(fail),ref(15),o(170),proc(/(var,1)),1,'ptc_scalar',16,985,989,0,1,o(298),a(2),o(172),o(157),o(170),proc(/(compound,1)),1,'ptc_scalar',18,1084,1093,0,1,o(309),a(2),o(172),o(342),proc(/(unify_term_scalar,2)),1,'ptc_scalar',19,1104,1122,o(151),proc(/(unify_term_scalar,2)),o(0),ref(17),ref(30),ref(42),0),54,50,524288,'ptc_scalar',15,956))).
+:-(:(sepia_kernel,store_pred(/(unify_term_scalar,2),[](o(240),a(1),ref(fail),o(34),o(274),an(ptc_scalar),o(38),a(1),o(170),proc(/(=,2)),1,'ptc_scalar',23,1226,1227,5,0,o(7),a(2),a(1),o(172),o(157),o(0),ref(10),0),25,23,524288,'ptc_scalar',21,1143))).
+:-(:(sepia_kernel,store_pred(/(print_scalar,2),[](o(240),a(1),ref(fail),o(34),o(274),an(ptc_scalar),o(74),functor(/(ptc_scalar,2)),ref(fail),o(34),o(38),a(1),o(170),proc(/(=,2)),1,'ptc_scalar',28,1557,1558,5,0,o(16),a(2),functor(/(ptc_scalar,1)),ref(29),o(43),a(1),o(172),o(157),o(44),a(1),o(172),o(157),o(0),ref(14),0),36,34,524288,'ptc_scalar',26,1486))).
+:-(export(/(ptc_scalar__create_scalar,3))).
+:-(:(sepia_kernel,store_pred(/(ptc_scalar__create_scalar,3),[](o(2),a(2),a(4),o(107),a(2),functor(/(ptc_scalar,2)),o(79),a(1),o(79),a(4),o(2),a(3),a(1),o(404),a(3),ptc_scalar,o(342),proc(:(sepia_kernel,/(add_attribute,3))),1,'ptc_scalar',32,1820,1834,o(151),proc(:(sepia_kernel,/(add_attribute,3))),o(0),ref(18),0),28,26,524288,'ptc_scalar',31,1760))).
+:-(export(/(ptc_scalar__is_scalar,1))).
+:-(:(sepia_kernel,store_pred(/(ptc_scalar__is_scalar,1),[](o(240),a(1),ref(fail),o(34),o(274),an(ptc_scalar),o(38),a(1),o(170),proc(/(compound,1)),1,'ptc_scalar',37,2155,2164,0,1,o(309),a(1),o(172),o(170),proc(/(=,2)),1,'ptc_scalar',38,2180,2181,5,0,o(16),a(1),functor(/(ptc_scalar,2)),ref(35),o(349),pw(2),o(172),o(157),o(0),ref(10),ref(22),0),41,38,524288,'ptc_scalar',35,2108))).
+:-(export(/(ptc_scalar__get_type,2))).
+:-(:(sepia_kernel,store_pred(/(ptc_scalar__get_type,2),[](o(240),a(1),ref(fail),o(34),o(274),an(ptc_scalar),o(74),functor(/(ptc_scalar,2)),ref(fail),o(38),a(1),o(170),proc(/(=,2)),1,'ptc_scalar',43,2475,2476,5,0,o(7),a(2),a(1),o(172),o(157),o(0),ref(13),0),28,26,524288,'ptc_scalar',41,2392))).
+:-(export(/(ptc_scalar__get_value,2))).
+:-(:(sepia_kernel,store_pred(/(ptc_scalar__get_value,2),[](o(240),a(1),ref(fail),o(34),o(274),an(ptc_scalar),o(74),functor(/(ptc_scalar,2)),ref(fail),o(34),o(38),a(1),o(170),proc(/(=,2)),1,'ptc_scalar',48,2741,2742,5,0,o(7),a(2),a(1),o(172),o(157),o(0),ref(14),0),29,27,524288,'ptc_scalar',46,2661))).
+:-(export(/(ptc_scalar__set_value,2))).
+:-(:(sepia_kernel,store_pred(/(ptc_scalar__set_value,2),[](o(240),a(1),ref(fail),o(34),o(274),an(ptc_scalar),o(2),a(2),a(3),o(38),a(2),o(102),a(1),2,o(342),proc(/(setarg,3)),1,'ptc_scalar',53,2985,2992,o(151),proc(/(setarg,3)),o(0),ref(16),0),26,24,524288,'ptc_scalar',51,2928))).

@@ -1,0 +1,50 @@
+:- module(lambda).
+:- export (^) / 3.
+:- export (^) / 4.
+:- export (^) / 5.
+:- export (^) / 6.
+:- export (^) / 7.
+:- export (^) / 8.
+:- export (^) / 9.
+:- export (\) / 1.
+:- export (\) / 2.
+:- export (\) / 3.
+:- export (\) / 4.
+:- export (\) / 5.
+:- export (\) / 6.
+:- export (\) / 7.
+:- export +\ / 2.
+:- export +\ / 3.
+:- export +\ / 4.
+:- export +\ / 5.
+:- export +\ / 6.
+:- export +\ / 7.
+:- export op(201, xfx, +\).
+:- export initialization((current_module_predicate(exported, P_205264) @ lambda, \+ current_predicate(P_205264), (import P_205264 from lambda), printf(warning_output, "WARNING: library(lambda) redefines %Dw%n", [P_205264]), fail) ; true).
+:- tool(no_hat_call / 1, no_hat_call_ / 2).
+:- tool((^) / 3, '^_' / 4).
+:- tool((^) / 4, '^_' / 5).
+:- tool((^) / 5, '^_' / 6).
+:- tool((^) / 6, '^_' / 7).
+:- tool((^) / 7, '^_' / 8).
+:- tool((^) / 8, '^_' / 9).
+:- tool((^) / 9, '^_' / 10).
+:- tool((\) / 1, '\\_' / 2).
+:- tool((\) / 2, '\\_' / 3).
+:- tool((\) / 3, '\\_' / 4).
+:- tool((\) / 4, '\\_' / 5).
+:- tool((\) / 5, '\\_' / 6).
+:- tool((\) / 6, '\\_' / 7).
+:- tool((\) / 7, '\\_' / 8).
+:- tool(+\ / 2, '+\\_' / 3).
+:- tool(+\ / 3, '+\\_' / 4).
+:- tool(+\ / 4, '+\\_' / 5).
+:- tool(+\ / 5, '+\\_' / 6).
+:- tool(+\ / 6, '+\\_' / 7).
+:- tool(+\ / 7, '+\\_' / 8).
+:- tool(+\ / 8, '+\\_' / 9).
+:- comment(categories, ["Programming Utilities"]).
+:- comment(author, "Ulrich Neumerkel, ulrich@complang.tuwien.ac.at (ECLiPSe port: Joachim Schimpf)").
+:- comment(copyright, "2009 Ulrich Neumerkel. All rights reserved.\n\nRedistribution and use in source and binary forms, with or without\nmodification, are permitted provided that the following conditions are\nmet:\n\n1. Redistributions of source code must retain the above copyright\n   notice, this list of conditions and the following disclaimer.\n\n2. Redistributions in binary form must reproduce the above copyright\n   notice, this list of conditions and the following disclaimer in the\n   documentation and/or other materials provided with the distribution.\n\nTHIS SOFTWARE IS PROVIDED BY Ulrich Neumerkel ``AS IS'' AND ANY\nEXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE\nIMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR\nPURPOSE ARE DISCLAIMED. IN NO EVENT SHALL Ulrich Neumerkel OR\nCONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,\nEXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,\nPROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR\nPROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF\nLIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING\nNEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS\nSOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n\nThe views and conclusions contained in the software and documentation\nare those of the authors and should not be interpreted as representing\nofficial policies, either expressed or implied, of Ulrich Neumerkel.\n").
+:- comment(summary, "This library provides lambda expressions to simplify higher order\nprogramming based on call/N.").
+:- comment(desc, html("<PRE>\n/** <module> Lambda expressions\n\nThis library provides lambda expressions to simplify higher order\nprogramming based on call/N.\n\nLambda expressions are represented by ordinary Prolog terms.\nThere are two kinds of lambda expressions:\n\n    Free+\\X1^X2^ ..^XN^Goal\n\n         \\X1^X2^ ..^XN^Goal\n\nThe second is a shorthand for t+\\X1^X2^..^XN^Goal.\n\nXi are the parameters.\n\nGoal is a goal or continuation. Syntax note: Operators within Goal\nrequire parentheses due to the low precedence of the ^ operator.\n\nFree contains variables that are valid outside the scope of the lambda\nexpression. They are thus free variables within.\n\nAll other variables of Goal are considered local variables. They must\nnot appear outside the lambda expression. This restriction is\ncurrently not checked. Violations may lead to unexpected bindings.\n\nIn the following example the parentheses around X>3 are necessary.\n\n==\n?- use_module(library(lambda)).\n?- use_module(library(apply)).\n\n?- maplist(\\X^(X>3),[4,5,9]).\ntrue.\n==\n\nIn the following X is a variable that is shared by both instances of\nthe lambda expression. The second query illustrates the cooperation of\ncontinuations and lambdas. The lambda expression is in this case a\ncontinuation expecting a further argument.\n\n==\n?- Xs = [A,B], maplist(X+\\Y^dif(X,Y), Xs).\nXs = [A, B],\ndif(X, A),\ndif(X, B).\n\n?- Xs = [A,B], maplist(X+\\dif(X), Xs).\nXs = [A, B],\ndif(X, A),\ndif(X, B).\n==\n\nThe following queries are all equivalent. To see this, use\nthe fact f(x,y).\n==\n?- call(f,A1,A2).\n?- call(\\X^f(X),A1,A2).\n?- call(\\X^Y^f(X,Y), A1,A2).\n?- call(\\X^(X+\\Y^f(X,Y)), A1,A2).\n?- call(call(f, A1),A2).\n?- call(f(A1),A2).\n?- f(A1,A2).\nA1 = x,\nA2 = y.\n==\n\nFurther discussions\nhttp://www.complang.tuwien.ac.at/ulrich/Prolog-inedit/ISO-Hiord\n\n@tbd Static expansion similar to apply_macros.\n@author Ulrich Neumerkel\n*/\n</PRE>")).

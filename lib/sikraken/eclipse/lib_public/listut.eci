@@ -1,0 +1,33 @@
+:- module(listut).
+:- export correspond / 4.
+:- export delete / 3.
+:- export last / 2.
+:- export nextto / 3.
+:- export nmember / 3.
+:- export nmembers / 3.
+:- export nth0 / 3.
+:- export nth0 / 4.
+:- export nth1 / 3.
+:- export nth1 / 4.
+:- export numlist / 3.
+:- export perm / 2.
+:- export perm2 / 4.
+:- export remove_dups / 2.
+:- export rev / 2.
+:- export same_length / 2.
+:- export select / 4.
+:- export shorter_list / 2.
+:- export subseq / 3.
+:- export subseq0 / 2.
+:- export subseq1 / 2.
+:- export sumlist / 2.
+:- reexport append / 3, reverse / 2 from sepia_kernel.
+:- comment(categories, ["Data Structures"]).
+:- comment(summary, "List processing utilities").
+:- comment(author, "Bob Welham, Lawrence Byrd, R.A.O'Keefe, Joachim Schimpf").
+:- comment(copyright, 'This file is in the public domain').
+:- comment(date, "$Date: 2013/02/09 20:27:57 $").
+:- comment(nth0 / 3, [amode : (nth0(+, +, -) is det), amode : (nth0(-, +, -) is nondet), amode : (nth0(-, -, -) is nondet), args : ["I" : "Integer position index, counting from 0", "List" : "A list", "Elem" : "Any term"], summary : "Access nth element of a list", see_also : [nth1 / 3, nth0 / 4, nth1 / 4], desc : html("\tSucceeds when Elem is the Nth member of List, counting the\n\tfirst as element 0.  (That is, throw away the first N elements\n\tand unify Elem with the next.)\n    ")]).
+:- comment(nth0 / 4, [amode : (nth0(+, +, -, -) is det), amode : (nth0(-, +, -, -) is nondet), amode : (nth0(-, -, -, -) is nondet), args : ["I" : "Integer position index, counting from 0", "List" : "A list", "Elem" : "Any term", "Rest" : "A list"], summary : "Access nth element and remainder of a list", see_also : [nth0 / 3, nth1 / 3, nth1 / 4], desc : html("\tUnifies Elem with the Nth element of List, counting from 0,\n\tand Rest with the other elements.  It can be used to select\n\tthe Nth (counting from 0) element of List (yielding Elem and\n\tRest), or to insert Elem after the Nth (counting from 1)\n\telement of Rest, when it yields List, e.g. nth0(2, List, c,\n\t[a,b,d,e]) unifies List with [a,b,c,d,e].\n    ")]).
+:- comment(nth1 / 3, [amode : (nth1(+, +, -) is det), amode : (nth1(-, +, -) is nondet), amode : (nth1(-, -, -) is nondet), args : ["I" : "Integer position index, counting from 1", "List" : "A list", "Elem" : "Any term"], summary : "Access nth element of a list", see_also : [nth0 / 3, nth0 / 4, nth1 / 4], desc : html("\tSucceeds when Elem is the Nth member of List, counting the\n\tfirst as element 1.\n    ")]).
+:- comment(nth1 / 4, [amode : (nth1(+, +, -, -) is det), amode : (nth1(-, +, -, -) is nondet), amode : (nth1(-, -, -, -) is nondet), args : ["I" : "Integer position index, counting from 1", "List" : "A list", "Elem" : "Any term", "Rest" : "A list"], summary : "Access nth element and remainder of a list", see_also : [nth0 / 3, nth1 / 3, nth0 / 4], desc : html("\tUnifies Elem with the Nth element of List, counting from 1,\n\tand Rest with the other elements.  It can be used to select\n\tthe Nth element of List (yielding Elem and Rest), or to insert\n\tElem before the Nth (counting from 1) element of Rest, when it\n\tyields List, e.g. nth1(3, List, c, [a,b,d,e]) unifies List\n\twith [a,b,c,d,e].\n    ")]).

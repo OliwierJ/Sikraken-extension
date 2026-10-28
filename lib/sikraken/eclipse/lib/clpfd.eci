@@ -1,0 +1,89 @@
+:- module(clpfd).
+:- reexport (#=) / 2, (#\=) / 2, (#>=) / 2, (#=<) / 2, (#>) / 2, (#<) / 2, circuit / 1, indomain / 1 from ic.
+:- export op(450, xfx, ..).
+:- export op(250, yfx, ?).
+:- export ? / 2.
+:- export op(700, xfx, in).
+:- export in / 2.
+:- export op(700, xfx, ins).
+:- export ins / 2.
+:- export op(760, yfx, #<==>).
+:- export #<==> / 2.
+:- export #<==> / 3.
+:- export op(750, yfx, #<==).
+:- export #<== / 2.
+:- export #<== / 3.
+:- export op(750, yfx, #==>).
+:- export #==> / 2.
+:- export #==> / 3.
+:- export op(720, yfx, #/\).
+:- export #/\ / 2.
+:- export #/\ / 3.
+:- export op(740, yfx, #\/).
+:- export #\/ / 2.
+:- export #\/ / 3.
+:- export op(710, fy, #\).
+:- export #\ / 1.
+:- export #\ / 2.
+:- export all_different / 1.
+:- export all_distinct / 1.
+:- export sum / 3.
+:- export scalar_product / 4.
+:- export lex_chain / 1.
+:- export zcompare / 3.
+:- export serialized / 2.
+:- export cumulative / 2.
+:- export chain / 2.
+:- export global_cardinality / 2.
+:- export global_cardinality / 3.
+:- export tuples_in / 2.
+:- export label / 1.
+:- export labeling / 2.
+:- export fd_var / 1.
+:- export fd_inf / 2.
+:- export fd_sup / 2.
+:- export fd_size / 2.
+:- export fd_dom / 2.
+:- export transpose / 2.
+:- comment(categories, ["Compatibility", "Constraints"]).
+:- comment(summary, "Compatibility package for M.Triska's clpfd library").
+:- comment(author, "Joachim Schimpf").
+:- comment(copyright, "This file is in the public domain").
+:- comment(date, "$Date: 2015/03/29 22:19:40 $").
+:- comment(desc, html("<P>\r\n    This library implements the syntax of M.Triska's clpfd library\r\n    (and to some degree SICStus's clpfd library) on top of ECLiPSe's\r\n    library(ic).  Its features can be freely mixed with library(ic).\r\n</P><P>\r\n    Differences:\r\n    <UL>\r\n    <LI>library(ic) uses floating point arithmetic, while Triska's clpfd uses\r\n    bignums, which implies that the behaviour with large integers will differ</LI>\r\n    <LI>more generally, propagation details and performance may differ</LI>\r\n    <LI>(#\\)/2 is currently not supported because of name clash</LI>\r\n    <LI>TODO: automaton constraint</LI>\r\n    </UL>\r\n</P>")).
+:- comment(see_also, [library(ic), library(ic_global), library(ic_global_gac), library(branch_and_bound)]).
+:- comment(#/\ / 2, [template : "X #/\\ Y", summary : ""]).
+:- comment(#/\ / 3, hidden).
+:- comment(#<== / 2, [template : "X #<== Y", summary : ""]).
+:- comment(#<== / 3, hidden).
+:- comment(#<==> / 2, [template : "X #<==> Y", summary : ""]).
+:- comment(#<==> / 3, hidden).
+:- comment(#==> / 2, [template : "X #==> Y", summary : ""]).
+:- comment(#==> / 3, hidden).
+:- comment(#\ / 1, [template : "#\\ Y", summary : ""]).
+:- comment(#\ / 2, hidden).
+:- comment(#\/ / 2, [template : "X #\\/ Y", summary : ""]).
+:- comment(#\/ / 3, hidden).
+:- comment(? / 2, hidden).
+:- comment(all_different / 1, [template : "all_different(+Vars)", summary : "", see_also : [ic : alldifferent / 1]]).
+:- comment(all_distinct / 1, [template : "all_distinct(+Vars)", summary : "", see_also : [ic_global : alldifferent / 1]]).
+:- comment(chain / 2, [template : "chain(+Vars,+Relation)", summary : ""]).
+:- comment(cumulative / 2, [template : "cumulative(+Tasks,+Options)", summary : "", see_also : [ic_edge_finder : cumulative / 4]]).
+:- comment(fd_dom / 2, [template : "fd_dom(?Var,-Dom)", summary : "", see_also : [ic : get_domain / 2]]).
+:- comment(fd_inf / 2, [template : "fd_inf(?Var,-Min)", summary : "", see_also : [ic : get_min / 2]]).
+:- comment(fd_size / 2, [template : "fd_size(?Var,-Size)", summary : "", see_also : [ic : get_domain_size / 2]]).
+:- comment(fd_sup / 2, [template : "fd_sup(?Var,-Max)", summary : "", see_also : [ic : get_max / 2]]).
+:- comment(fd_var / 1, [template : "fd_var(?Var)", summary : "", see_also : [ic : is_solver_var / 1]]).
+:- comment(global_cardinality / 2, [template : "global_cardinality(+Vars,+Pairs)", summary : "", see_also : [ic_global_gac : gcc / 2]]).
+:- comment(global_cardinality / 3, [template : "global_cardinality(+Vars,+Pairs,+Options)", summary : "", see_also : [ic_global_gac : gcc / 2]]).
+:- comment(in / 2, [template : "?Var in +Domain", summary : "", see_also : [ic : #:: / 2]]).
+:- comment(ins / 2, [template : "?Vars ins +Domain", summary : "", see_also : [ic : #:: / 2]]).
+:- comment(label / 1, [template : "label(+Vars)", summary : ""]).
+:- comment(labeling / 2, [template : "labeling(+Options, +Vars)", summary : "", see_also : [ic : search / 6, library(branch_and_bound)]]).
+:- comment(lex_chain / 1, [template : "lex_chain(+Lists)", summary : "", see_also : [ic_global : lex_le / 2]]).
+:- comment(scalar_product / 4, [template : "scalar_product(+Csts,+Vars,+Rel,?Expr)", summary : ""]).
+:- comment(serialized / 2, [template : "serialized(+Starts,+Durations)", summary : "", see_also : [ic_edge_finder : disjunctive / 2]]).
+:- comment(sum / 3, [template : "sum(+Vars,+Rel,?Expr)", summary : ""]).
+:- comment(transpose / 2, [template : "transpose(+Rows,+Cols)", summary : "", see_also : [matrix_util : transpose / 2]]).
+:- comment(tuples_in / 2, [template : "tuples_in(+Tuples,+Relation)", summary : "", see_also : [ic_global_gac : gcc / 2]]).
+:- comment(zcompare / 3, [template : "zcompare(?Rel,?X,?Y)", summary : ""]).
