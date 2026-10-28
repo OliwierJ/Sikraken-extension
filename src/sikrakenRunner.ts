@@ -1,5 +1,3 @@
-import * as fs from 'node:fs/promises';
-import * as path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
@@ -23,7 +21,6 @@ const DEFAULT_BUDGET = 5;
 export async function runSikraken(options: RunnerOptions): Promise<SikrakenRun> {
 	const budget = options.budget ?? DEFAULT_BUDGET;
 	
-
 	let result;
 	try {
 		result = await execFileAsync('bash', [

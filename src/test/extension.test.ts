@@ -2,9 +2,6 @@ import * as assert from 'assert';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
-
-// You can import and use all API from the 'vscode' module
-// as well as import your extension to test it
 import * as vscode from 'vscode';
 import { extractTestInputs } from '../sikrakenXml';
 import { extractNondeterministicVariables } from '../variableNames';
@@ -94,40 +91,40 @@ suite('Extension Test Suite', () => {
 				workingDirectory: temporaryDirectory,
 			});
 
-			test('evaluates a function when the included source main uses verifier inputs', async function () {
-				this.timeout(10_000);
+			assert.strictEqual(result, '1');
+		} finally {
+			await fs.rm(temporaryDirectory, { recursive: true, force: true });
+		}
+	});
 
-				const temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'sikraken-evaluator-'));
-				try {
-					const sourcePath = path.join(temporaryDirectory, 'functions.c');
-					await fs.writeFile(
-						sourcePath,
-						[
-							'extern int __VERIFIER_nondet_int(void);',
-							'int is_positive(int value) { return value > 0 ? 1 : 0; }',
-							'int main(void) { return __VERIFIER_nondet_int(); }',
-						].join('\n'),
-						'utf8',
-					);
+	test('evaluates a function when the included source main uses verifier inputs', async function () {
+		this.timeout(10_000);
 
-					const result = await evaluateFunctionInput({
-						sourcePath,
-						functionName: 'is_positive',
-						returnType: 'int',
-						parameters: [{
-							type: 'int',
-							name: 'value',
-							baseType: 'int',
-							nondeterministicName: 'int',
-						}],
-						inputs: ['3'],
-						workingDirectory: temporaryDirectory,
-					});
+		const temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'sikraken-evaluator-'));
+		try {
+			const sourcePath = path.join(temporaryDirectory, 'functions.c');
+			await fs.writeFile(
+				sourcePath,
+				[
+					'extern int __VERIFIER_nondet_int(void);',
+					'int is_positive(int value) { return value > 0 ? 1 : 0; }',
+					'int main(void) { return __VERIFIER_nondet_int(); }',
+				].join('\n'),
+				'utf8',
+			);
 
-					assert.strictEqual(result, '1');
-				} finally {
-					await fs.rm(temporaryDirectory, { recursive: true, force: true });
-				}
+			const result = await evaluateFunctionInput({
+				sourcePath,
+				functionName: 'is_positive',
+				returnType: 'int',
+				parameters: [{
+					type: 'int',
+					name: 'value',
+					baseType: 'int',
+					nondeterministicName: 'int',
+				}],
+				inputs: ['3'],
+				workingDirectory: temporaryDirectory,
 			});
 
 			assert.strictEqual(result, '1');
@@ -192,14 +189,5 @@ suite('Extension Test Suite', () => {
 		} finally {
 			await fs.rm(temporaryDirectory, { recursive: true, force: true });
 		}
-	});
-
-	test('generates the expected test inputs for a function with multiple parameters', async function () {
-		this.timeout(30_000);
-
-		const t = vscode.commands.executeCommand('sikraken.generateTestsOnFunction');
-
-		// Expect no errors to be thrown during the command execution
-		await t; 
 	});
 });

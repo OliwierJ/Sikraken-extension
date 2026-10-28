@@ -2,11 +2,8 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { FunctionContext } from './functionContext';
 
-
-export async function buildFunctionContext(
-    editor: vscode.TextEditor,
-    symbol: vscode.DocumentSymbol,
-): Promise<FunctionContext> {
+// This function builds a FunctionContext object based on the currently active editor and the selected function symbol.
+export async function buildFunctionContext(editor: vscode.TextEditor, symbol: vscode.DocumentSymbol): Promise<FunctionContext> {
     const source = editor.document.getText();
 
     return {

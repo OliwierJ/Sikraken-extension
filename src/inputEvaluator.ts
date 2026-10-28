@@ -23,10 +23,12 @@ export async function evaluateFunctionInput(options: EvaluateInputOptions): Prom
 		);
 	}
 
+	// Validate each input against its corresponding parameter type and prepare the argument list for the function call
 	const argumentsList = options.inputs.map((input, index) => {
 		validateScalarLiteral(input, options.parameters[index].name);
 		return input;
 	}).join(', ');
+
 	const driverSource = createEvaluatorSource(
 		options.sourcePath,
 		options.functionName,
@@ -74,12 +76,8 @@ export async function evaluateFunctionInput(options: EvaluateInputOptions): Prom
 	}
 }
 
-function createEvaluatorSource(
-	sourcePath: string,
-	functionName: string,
-	returnType: string,
-	argumentsList: string,
-): string {
+function createEvaluatorSource(sourcePath: string, functionName: string, returnType: string, argumentsList: string): string {
+	
 	const includePath = toCStringLiteral(sourcePath);
 	const call = `${functionName}(${argumentsList})`;
 	const normalizedReturnType = returnType.replace(/\s+/g, ' ').trim();

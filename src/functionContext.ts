@@ -9,6 +9,7 @@ export type CompilerContext = {
     defines: string[];
 };
 
+// Currently unused, but may be useful for future extensions of the FunctionContext.
 export type FunctionDependency =
     | {
             kind: 'same-file-function';
