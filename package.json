@@ -2,7 +2,12 @@
   "name": "sikraken-extension",
   "displayName": "Sikraken Extension",
   "description": "VS Code extension for Sikraken",
-  "version": "0.0.1",
+  "version": "0.1.1",
+  "publisher": "OliwierJ",
+  "license": "GPL-3.0-only",
+  "repository": {
+    "url": "https://github.com/OliwierJ/Sikraken-extension"
+  },
   "contributors": [
     {
       "name": "OliwierJ",
@@ -89,17 +94,19 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "package": "vsce package"
   },
   "devDependencies": {
-    "@types/vscode": "^1.140.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "24.x",
-    "typescript-eslint": "^8.61.1",
+    "@types/vscode": "^1.140.0",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.0.0",
+    "@vscode/vsce": "^4.1.0",
     "eslint": "^10.5.0",
     "typescript": "^6.0.3",
-    "@vscode/test-cli": "^0.0.15",
-    "@vscode/test-electron": "^3.0.0"
+    "typescript-eslint": "^8.61.1"
   },
   "overrides": {
     "diff": "^8.0.4",

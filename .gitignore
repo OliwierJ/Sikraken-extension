@@ -9,3 +9,5 @@ vsc-extension-quickstart.md
 agents.md
 SampleCode/unity
 SampleCode/*test_suite.c
+*.vsix
+CHANGELOG.md
