@@ -31,6 +31,10 @@
       {
         "command": "sikraken.generateTestsOnFunction",
         "title": "Generate Tests on Function"
+      },
+      {
+        "command": "sikraken.showInstallInstructions",
+        "title": "Show Sikraken Dependency Instructions"
       }
     ],
     "menus": {

@@ -43,7 +43,26 @@ Requirements:
 
 - VS Code `1.140` or newer
 - Node.js and npm
-- Linux environment for the bundled Sikraken tools
+- x86_64 Linux environment for the bundled Sikraken tools
+- Bash, `timeout`, and `prlimit`
+- GCC with 32-bit support (`gcc -m32`)
+
+The extension checks these prerequisites before running Sikraken. The Eclipse
+runtime and Sikraken parser are bundled with the extension, but GCC and the
+Linux utility commands must be installed on the host system. On Ubuntu, the
+following usually provides the required tools:
+
+```bash
+sudo apt install bash coreutils gcc gcc-multilib
+```
+
+The exact packages may differ between Linux distributions.
+
+You can run the included Ubuntu/Debian installer from the extension directory:
+
+```bash
+bash scripts/install-dependencies.sh
+```
 
 ```bash
 git clone https://github.com/OliwierJ/Sikraken-extension.git

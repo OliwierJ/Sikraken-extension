@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { unityAssertionTemplate, unityTemplate, unityTestCaseTemplate } from './templates';
-import { runSikraken } from './sikrakenRunner';
+import { checkSikrakenPrerequisites, runSikraken } from './sikrakenRunner';
 import { createIncludeHarness, GeneratedHarness, parseFunction, parseFunctionSymbols, ParsedFunction} from './documentTransformer';
 import { extractTestInputs } from './sikrakenXml';
 import { extractNondeterministicVariables } from './variableNames';
@@ -17,9 +17,46 @@ export type TestFunction = {
 
 const sikrakenPath = 'lib/sikraken/bin/sikraken.sh';
 
+async function showInstallInstructions(context: vscode.ExtensionContext): Promise<void> {
+	try {
+		const readme = await vscode.workspace.openTextDocument(
+			vscode.Uri.file(context.asAbsolutePath('README.md')),
+		);
+		await vscode.window.showTextDocument(readme);
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		vscode.window.showErrorMessage(`Could not open Sikraken installation instructions: ${message}`);
+	}
+}
+
+async function ensureSikrakenPrerequisites(
+	context: vscode.ExtensionContext,
+	scriptPath: string,
+): Promise<boolean> {
+	const result = await checkSikrakenPrerequisites(scriptPath);
+	if (result.ok) {
+		return true;
+	}
+
+	const choice = await vscode.window.showErrorMessage(
+		`Sikraken prerequisites are missing: ${result.missing.join('; ')}. ` +
+		'Install the documented Linux dependencies and try again.',
+		'Show installation instructions',
+	);
+	if (choice === 'Show installation instructions') {
+		await showInstallInstructions(context);
+	}
+	return false;
+}
+
 // This method is called when the extension is activated
 export function activate(context: vscode.ExtensionContext) {
 	console.log('"<Sikraken Extension>" is now active!');
+	context.subscriptions.push(
+		vscode.commands.registerCommand('sikraken.showInstallInstructions', () => {
+			return showInstallInstructions(context);
+		}),
+	);
 
 	// This command runs Sikraken on the currently active C file and extracts the test inputs
 	vscode.commands.registerCommand('sikraken.runSikrakenOnFile', async () => {
@@ -49,6 +86,10 @@ export function activate(context: vscode.ExtensionContext) {
 			const outputDir = path.join(context.globalStorageUri.fsPath, '/sikraken_output');
 
 			const outputPath = path.join(outputDir, fileName, 'test-suite');
+
+			if (!await ensureSikrakenPrerequisites(context, sikrakenScriptPath)) {
+				return;
+			}
 
 			progress.report({ increment: 10, message: 'Running Sikraken...' });
 			// Invoke Sikraken script with the selected file
@@ -115,10 +156,22 @@ export function activate(context: vscode.ExtensionContext) {
 			vscode.window.showInformationMessage('This command only works for C files.');
 			return;
 		}
-		
+
+		const sikrakenScriptPath = context.asAbsolutePath(sikrakenPath);
+		if (!await ensureSikrakenPrerequisites(context, sikrakenScriptPath)) {
+			return;
+		}
+
+		// Get the selected function
+		const functionSymbol = await parseFunctionSymbols(activeEditor);
+		if (!functionSymbol) {
+			vscode.window.showInformationMessage('No function selected.');
+			return;
+		}
+
 		// Check extension settings to determine whether to show the prompt
 		const generateOutputs: boolean = await determineOutputGeneration();
-		
+
 		vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
 			title: 'Generating test suite...',
@@ -133,12 +186,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 			progress.report({ increment: 10, message: 'Parsing function...' });
 
-			// Get the selected function
-			const functionSymbol = await parseFunctionSymbols(activeEditor);
-			if (!functionSymbol) {
-				vscode.window.showInformationMessage('No function selected.');
-				return;
-			}		
 			const functionContext = await buildFunctionContext(activeEditor, functionSymbol);
 
 			
@@ -166,8 +213,6 @@ export function activate(context: vscode.ExtensionContext) {
 			const tempFilePath = path.join(tempDirectory, tempFileName);
 
 			await fs.writeFile(tempFilePath, harness.source, 'utf8');
-			const sikrakenScriptPath = context.asAbsolutePath(sikrakenPath);
-
 			const tempFileBaseName = path.basename(
 				tempFilePath,
 				path.extname(tempFilePath)
