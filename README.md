@@ -22,6 +22,21 @@ This extension was developed as my final year project.
 
 ## Installation
 
+### From GitHub Releases
+
+Download the latest `.vsix` package from the
+[Sikraken Extension GitHub Releases](https://github.com/OliwierJ/Sikraken-extension/releases)
+page.
+
+Install the downloaded package from the command line:
+
+```bash
+code --install-extension sikraken-extension-<version>.vsix
+```
+
+Alternatively, in VS Code open the Extensions view, select the
+**...** menu, choose **Install from VSIX...**, and select the downloaded file.
+
 ### From source
 
 Requirements:
