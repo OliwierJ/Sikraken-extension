@@ -88,6 +88,17 @@
           ],
           "description": "Select the mode for generating test cases.",
           "default": "prompt"
+        },
+        "sikraken.sikrakenBudget": {
+          "type": "number",
+          "minimum": 1,
+          "description": "Set the budget for Sikraken in seconds. This is the maximum time Sikraken will spend generating test cases.",
+          "default": 10
+        },
+        "sikraken.testSuiteOutputDirectory": {
+          "type": "string",
+          "description": "Directory for generated Unity test suites, relative to the workspace when not absolute.",
+          "default": "./tests"
         }
       }
     }

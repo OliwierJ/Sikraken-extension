@@ -8,7 +8,7 @@ import { extractTestInputs } from './sikrakenXml';
 import { extractNondeterministicVariables } from './variableNames';
 import { buildFunctionContext } from './buildFunctionContext';
 import { evaluateFunctionInput } from './inputEvaluator';
-import { determineOutputGeneration } from './settings';
+import { determineOutputGeneration, loadSikrakenSettings, SikrakenSettings } from './settings';
 
 export type TestFunction = {
 	name: string;
@@ -52,6 +52,7 @@ async function ensureSikrakenPrerequisites(
 // This method is called when the extension is activated
 export function activate(context: vscode.ExtensionContext) {
 	console.log('"<Sikraken Extension>" is now active!');
+	
 	context.subscriptions.push(
 		vscode.commands.registerCommand('sikraken.showInstallInstructions', () => {
 			return showInstallInstructions(context);
@@ -91,6 +92,10 @@ export function activate(context: vscode.ExtensionContext) {
 				return;
 			}
 
+			// Load Sikraken settings for the current workspace
+			const sikrakenSettings: SikrakenSettings = loadSikrakenSettings(activeEditor.document.uri);
+
+
 			progress.report({ increment: 10, message: 'Running Sikraken...' });
 			// Invoke Sikraken script with the selected file
 			try {
@@ -98,7 +103,8 @@ export function activate(context: vscode.ExtensionContext) {
 					scriptPath: sikrakenScriptPath,
 					inputPath: filePath,
 					outputFileName: fileName,
-					outputDir: outputDir
+					outputDir: outputDir,
+					budget: sikrakenSettings.sikrakenBudget
 				});
 
 				if (result.stderr && result.stderr.trim()) {
@@ -169,8 +175,11 @@ export function activate(context: vscode.ExtensionContext) {
 			return;
 		}
 
+		// Load Sikraken settings for the current workspace
+		const sikrakenSettings: SikrakenSettings = loadSikrakenSettings(activeEditor.document.uri);
+
 		// Check extension settings to determine whether to show the prompt
-		const generateOutputs: boolean = await determineOutputGeneration();
+		const generateOutputs: boolean = await determineOutputGeneration(sikrakenSettings);
 
 		vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
@@ -237,6 +246,7 @@ export function activate(context: vscode.ExtensionContext) {
 					inputPath: tempFilePath,
 					outputFileName: tempFileBaseName,
 					outputDir: outputDir,
+					budget: sikrakenSettings.sikrakenBudget
 				});
 
 				if (result.stderr && result.stderr.trim()) {

@@ -7,7 +7,7 @@ vsc-extension-quickstart.md
 .env
 .vscodeignore
 agents.md
-SampleCode/unity
+SampleCode/include
 SampleCode/*test_suite.c
 *.vsix
 CHANGELOG.md

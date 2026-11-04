@@ -1,13 +1,38 @@
 import * as vscode from 'vscode';
 
+type TestGenerationMode = 'prompt' | 'characterization' | 'userSpecified';
+
+export type SikrakenSettings = {
+    framework: string | 'Unity';
+    testGenerationMode: TestGenerationMode;
+    sikrakenBudget: number;
+    testSuiteOutputDirectory: string;
+}
+
+/**
+ * Loads the Sikraken settings from the VS Code configuration for the given resource.
+ * @param resource The URI of the resource for which to load settings.
+ * @returns The Sikraken settings.
+ */
+export function loadSikrakenSettings(resource: vscode.Uri): SikrakenSettings {
+    const config = vscode.workspace.getConfiguration('sikraken', resource);
+
+    return {
+        framework: config.get<'Unity'>('framework', 'Unity'),
+        testGenerationMode: config.get<TestGenerationMode>('testGenerationMode', 'prompt'),
+        sikrakenBudget: config.get<number>('sikrakenBudget', 10),
+        testSuiteOutputDirectory: config.get<string>('testSuiteOutputDirectory', './tests'),
+    };
+}
+
 /**
  * Determines whether to generate expected outputs for a test case.
+ * @param sikrakenConfig The Sikraken configuration.
  * @returns A promise that resolves to a boolean indicating whether to generate outputs.
  */
-export async function determineOutputGeneration(): Promise<boolean> {
+export async function determineOutputGeneration(sikrakenConfig: SikrakenSettings): Promise<boolean> {
     // Retrieve the user's preference for test generation mode from the extension's configuration
-    const testGenerationSettings = vscode.workspace.getConfiguration('sikraken').get('testGenerationMode');
-    
+    const testGenerationSettings = sikrakenConfig.testGenerationMode;    
     let generateOutputs = true; // Default to true
 
     // Only prompt the user if the setting is set to 'prompt'
