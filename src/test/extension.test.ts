@@ -64,6 +64,31 @@ suite('Extension Test Suite', () => {
 		assert.deepStrictEqual(extractTestInputs(xml), ['1', '-2']);
 	});
 
+	test('rejects invalid Sikraken budgets before starting the process', async () => {
+		await assert.rejects(
+			() => runSikraken({
+				scriptPath: '/missing/sikraken.sh',
+				inputPath: __filename,
+				outputFileName: 'test',
+				outputDir: path.dirname(__filename),
+				budget: 0,
+			}),
+			/Sikraken budget must be a positive integer/,
+		);
+	});
+
+	test('reports missing Sikraken input files clearly', async () => {
+		await assert.rejects(
+			() => runSikraken({
+				scriptPath: '/missing/sikraken.sh',
+				inputPath: path.join(os.tmpdir(), 'missing-sikraken-input.c'),
+				outputFileName: 'test',
+				outputDir: path.dirname(__filename),
+			}),
+			/Could not access Sikraken input/,
+		);
+	});
+
 	test('extracts nondeterministic variable names in source order', () => {
 		const source = [
 			'int x = __VERIFIER_nondet_int();',
