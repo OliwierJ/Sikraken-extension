@@ -1,13 +1,15 @@
+.env
+.vscodeignore
 .vscode/
 .vscode-test/
 node_modules/
 out/
 eslint.config.mjs
 vsc-extension-quickstart.md
-.env
-.vscodeignore
 agents.md
 SampleCode/include
 SampleCode/*test_suite.c
+SampleCode/iteration-2/
+SampleCode/ITERATION-2-MATRIX.md
 *.vsix
 CHANGELOG.md
