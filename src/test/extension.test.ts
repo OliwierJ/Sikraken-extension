@@ -5,10 +5,10 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { extractTestInputs } from '../sikrakenXml';
 import { extractNondeterministicVariables } from '../variableNames';
-import { createIncludeHarness, parseFunction } from '../documentTransformer';
-import type { FunctionContext } from '../functionContext';
-import { runSikraken } from '../sikrakenRunner';
-import { evaluateFunctionInput } from '../inputEvaluator';
+import { createIncludeHarness, parseFunction } from '../services/documentTransformer';
+import type { FunctionContext } from '../services/functionContext';
+import { runSikraken } from '../services/sikrakenRunner';
+import { evaluateFunctionInput } from '../services/inputEvaluator';
 import { loadSikrakenSettings } from '../settings';
 
 suite('Extension Test Suite', () => {

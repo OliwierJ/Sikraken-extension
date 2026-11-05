@@ -1,5 +1,5 @@
 import { FunctionContext } from "./functionContext";
-import { nondeterministicTemplate } from "./templates";
+import { nondeterministicTemplate } from "../templates";
 import * as vscode from 'vscode';
 
 export type FunctionParameter = {

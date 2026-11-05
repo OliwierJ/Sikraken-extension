@@ -1,4 +1,4 @@
-import { FunctionParameter } from "./documentTransformer";
+import { FunctionParameter } from "./services/documentTransformer";
 
 
 export type TestCase = {
