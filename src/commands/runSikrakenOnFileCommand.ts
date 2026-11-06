@@ -3,10 +3,9 @@ import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
 import { runSikraken } from '../services/sikrakenRunner';
 import { SikrakenSettings, loadSikrakenSettings } from '../settings';
-import { extractTestInputs } from '../sikrakenXml';
-import { extractNondeterministicVariables } from '../variableNames';
 import { ensureSikrakenPrerequisites } from '../services/sikrakenPrerequisites';
-
+import { SIKRAKEN_PATH } from '../types';
+import { extractNondeterministicVariables, extractTestInputs } from '../services/testInputParser';
 
 export async function runSikrakenOnFile(context: vscode.ExtensionContext): Promise<void> {
 	const activeEditor = vscode.window.activeTextEditor;
@@ -30,7 +29,7 @@ export async function runSikrakenOnFile(context: vscode.ExtensionContext): Promi
 			const filePath = activeEditor.document.uri.fsPath;
 			const fileName = path.basename(filePath, path.extname(filePath));
 
-			const sikrakenScriptPath = context.asAbsolutePath('lib/sikraken/bin/sikraken.sh');
+			const sikrakenScriptPath = context.asAbsolutePath(SIKRAKEN_PATH);
 			const outputDir = path.join(context.globalStorageUri.fsPath, 'sikraken_output');
 
 			const outputPath = path.join(outputDir, fileName, 'test-suite');
@@ -71,33 +70,30 @@ export async function runSikrakenOnFile(context: vscode.ExtensionContext): Promi
 			}
 
 			progress.report({ increment: 60, message: 'Extracting test inputs...' });
-			// Find indeterminate variables from source file
+
+			const sourceCode = await fs.readFile(filePath, 'utf8');
+			const variables = extractNondeterministicVariables(sourceCode);
 			const outputChannel = vscode.window.createOutputChannel('Sikraken Test Inputs');
+			const testInputFiles = (await fs.readdir(outputPath)).filter((entry) => entry.startsWith('test_input-') && entry.endsWith('.xml')).sort();
+			let testInputs;
+
 			try {
-				const sourceCode = await fs.readFile(filePath, 'utf8');
-				const variables = extractNondeterministicVariables(sourceCode);
-				const testInputFiles = (await fs.readdir(outputPath)).filter((entry) => entry.startsWith('test_input-') && entry.endsWith('.xml')).sort();
-				if (testInputFiles.length === 0) {
-					throw new Error(`Sikraken produced no test inputs in '${outputPath}'.`);
-				}
-
-				for (const testInputFile of testInputFiles) {
-					const testInput = await fs.readFile(path.join(outputPath, testInputFile), 'utf8');
-					outputChannel.appendLine(`--- ${testInputFile} ---`);
-
-					const inputs = extractTestInputs(testInput);
-
-					for (let index = 0; index < inputs.length; index++) {
-						const variable = variables[index] ?? `input${index + 1}`;
-						outputChannel.appendLine(`${variable} = ${inputs[index]}`);
-					}
-				}
-				outputChannel.show(true);
+				testInputs = await extractTestInputs(testInputFiles, outputPath);
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
 				vscode.window.showErrorMessage(`Could not read Sikraken test inputs: ${message}`);
 				return;
 			}
+
+			for (const testInput of testInputs) {
+				outputChannel.appendLine(`--- ${testInput.fileName} ---`);
+
+				for (let index = 0; index < testInput.inputs.length; index++) {
+					const variable = variables[index] ?? `input${index + 1}`;
+					outputChannel.appendLine(`${variable} = ${testInput.inputs[index]}`);
+				}
+			}
+			outputChannel.show(true);
 
 			progress.report({ increment: 100, message: `Sikraken test inputs generated successfully!` });
 		},

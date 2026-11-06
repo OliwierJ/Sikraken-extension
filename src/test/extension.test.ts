@@ -3,13 +3,12 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import { extractTestInputs } from '../sikrakenXml';
-import { extractNondeterministicVariables } from '../variableNames';
 import { createIncludeHarness, parseFunction } from '../services/documentTransformer';
 import type { FunctionContext } from '../services/functionContext';
 import { runSikraken } from '../services/sikrakenRunner';
 import { evaluateFunctionInput } from '../services/inputEvaluator';
 import { loadSikrakenSettings } from '../settings';
+import { extractNondeterministicVariables, parseTestInputsXML } from '../services/testInputParser';
 
 suite('Extension Test Suite', () => {
 	vscode.window.showInformationMessage('Start all tests.');
@@ -61,7 +60,7 @@ suite('Extension Test Suite', () => {
 	test('extracts and trims Sikraken XML inputs', () => {
 		const xml = '<test><input> 1 </input><input>\n-2\n</input></test>';
 
-		assert.deepStrictEqual(extractTestInputs(xml), ['1', '-2']);
+		assert.deepStrictEqual(parseTestInputsXML(xml), ['1', '-2']);
 	});
 
 	test('rejects invalid Sikraken budgets before starting the process', async () => {
@@ -248,7 +247,7 @@ suite('Extension Test Suite', () => {
 				.sort();
 			const generatedInputs = await Promise.all(
 				testInputFiles.map(async fileName =>
-					extractTestInputs(await fs.readFile(path.join(testSuitePath, fileName), 'utf8')),
+					parseTestInputsXML(await fs.readFile(path.join(testSuitePath, fileName), 'utf8')),
 				),
 			);
 

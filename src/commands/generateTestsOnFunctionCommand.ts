@@ -1,50 +1,50 @@
 import path from 'path';
 import * as fs from 'node:fs/promises';
 import * as vscode from 'vscode';
-import { SIKRAKEN_PATH, TestFunction } from '../types';
+import { SIKRAKEN_PATH } from '../types';
 import { buildFunctionContext } from '../services/buildFunctionContext';
 import { parseFunctionSymbols, GeneratedHarness, ParsedFunction, parseFunction, createIncludeHarness } from '../services/documentTransformer';
-import { evaluateFunctionInput } from '../services/inputEvaluator';
 import { runSikraken } from '../services/sikrakenRunner';
 import { SikrakenSettings, loadSikrakenSettings, determineOutputGeneration } from '../settings';
-import { extractTestInputs } from '../sikrakenXml';
-import { unityAssertionTemplate, unityTestCaseTemplate, unityTemplate } from '../templates';
-import { extractNondeterministicVariables } from '../variableNames';
+import { unityTestCaseTemplate, unityTemplate } from '../templates';
 import { ensureSikrakenPrerequisites } from '../services/sikrakenPrerequisites';
+import { extractTestInputs } from '../services/testInputParser';
+import { generateTestCases } from '../services/testCaseExtractor';
 
 export async function generateTestsOnFunction(context: vscode.ExtensionContext) {
-		const activeEditor = vscode.window.activeTextEditor;
+	const activeEditor = vscode.window.activeTextEditor;
 
-		// Check if the active editor is a C file
-		if (!activeEditor ||activeEditor.document.languageId !== 'c') {
-			vscode.window.showInformationMessage('This command only works for C files.');
-			return;
-		}
+	// Check if the active editor is a C file
+	if (!activeEditor || activeEditor.document.languageId !== 'c') {
+		vscode.window.showInformationMessage('This command only works for C files.');
+		return;
+	}
 
-		const sikrakenScriptPath = context.asAbsolutePath(SIKRAKEN_PATH);
-		if (!await ensureSikrakenPrerequisites(context, sikrakenScriptPath)) {
-			return;
-		}
+	const sikrakenScriptPath = context.asAbsolutePath(SIKRAKEN_PATH);
+	if (!(await ensureSikrakenPrerequisites(context, sikrakenScriptPath))) {
+		return;
+	}
 
-		// Get the selected function
-		const functionSymbol = await parseFunctionSymbols(activeEditor);
-		if (!functionSymbol) {
-			vscode.window.showInformationMessage('No function selected.');
-			return;
-		}
+	// Get the selected function
+	const functionSymbol = await parseFunctionSymbols(activeEditor);
+	if (!functionSymbol) {
+		vscode.window.showInformationMessage('No function selected.');
+		return;
+	}
 
-		// Load Sikraken settings for the current workspace
-		const sikrakenSettings: SikrakenSettings = loadSikrakenSettings(activeEditor.document.uri);
+	// Load Sikraken settings for the current workspace
+	const sikrakenSettings: SikrakenSettings = loadSikrakenSettings(activeEditor.document.uri);
 
-		// Check extension settings to determine whether to show the prompt
-		const generateOutputs: boolean = await determineOutputGeneration(sikrakenSettings);
+	// Check extension settings to determine whether to show the prompt
+	const generateOutputs: boolean = await determineOutputGeneration(sikrakenSettings);
 
-		return vscode.window.withProgress({
+	return vscode.window.withProgress(
+		{
 			location: vscode.ProgressLocation.Notification,
 			title: 'Generating test suite...',
-			cancellable: true
-		}, async (progress, token) => {
-
+			cancellable: true,
+		},
+		async (progress, token) => {
 			// Handle cancellation
 			const abortController = new AbortController();
 			token.onCancellationRequested(() => abortController.abort());
@@ -53,7 +53,6 @@ export async function generateTestsOnFunction(context: vscode.ExtensionContext) 
 
 			const functionContext = await buildFunctionContext(activeEditor, functionSymbol);
 
-			
 			// Replace function parameters with indeterminate variables
 			let harness: GeneratedHarness;
 			let parsedFunction: ParsedFunction;
@@ -79,17 +78,17 @@ export async function generateTestsOnFunction(context: vscode.ExtensionContext) 
 				const tempFilePath = path.join(tempDirectory, tempFileName);
 
 				await fs.writeFile(tempFilePath, harness.source, 'utf8');
-				const tempFileBaseName = path.basename(
-					tempFilePath,
-					path.extname(tempFilePath)
-				);
+				const tempFileBaseName = path.basename(tempFilePath, path.extname(tempFilePath));
 
 				const outputDir = path.join(context.globalStorageUri.fsPath, 'sikraken_output');
 
 				const outputPath = path.join(outputDir, tempFileBaseName, 'test-suite');
 
 				// Test to see if the temp file exists
-				const tempFileExists = await fs.access(tempFilePath, fs.constants.F_OK).then(() => true).catch(() => false);
+				const tempFileExists = await fs
+					.access(tempFilePath, fs.constants.F_OK)
+					.then(() => true)
+					.catch(() => false);
 				if (!tempFileExists) {
 					vscode.window.showErrorMessage('Failed to create temp file.');
 					return;
@@ -125,120 +124,43 @@ export async function generateTestsOnFunction(context: vscode.ExtensionContext) 
 
 				// Find indeterminate variables from source file
 				progress.report({ increment: 60, message: 'Extracting test inputs...' });
-				const sourceCode = await fs.readFile(tempFilePath, 'utf8');
-				const variables = extractNondeterministicVariables(sourceCode);
 
-				let testCases: TestFunction[] = [];
+				const testInputFiles = (await fs.readdir(outputPath)).filter((entry) => entry.startsWith('test_input-') && entry.endsWith('.xml')).sort();
 
-				const outputChannel = vscode.window.createOutputChannel('Sikraken Test Inputs');
-				try {
-					const testInputFiles = (await fs.readdir(outputPath))
-						.filter((entry) => entry.startsWith('test_input-') && entry.endsWith('.xml'))
-						.sort();
-					if (testInputFiles.length === 0) {
-						throw new Error(`Sikraken produced no test inputs in '${outputPath}'.`);
-					}
+				const testInputs = await extractTestInputs(testInputFiles, outputPath);
 
-					let currentIndex = 1;
-					let loopProgress = 0;
-					for (const testInputFile of testInputFiles) {
-						const testInput = await fs.readFile(path.join(outputPath, testInputFile), 'utf8');
-						outputChannel.appendLine(`--- ${testInputFile} ---`);
+				const testCases = await generateTestCases({
+					testInputs,
+					generateOutputs,
+					progress,
+					harness,
+					parsedFunction,
+					functionContext,
+					tempDirectory,
+				});
 
-						const inputs = extractTestInputs(testInput);
-
-						// Check to see if there are any inputs
-						if (inputs.length === 0) {
-							vscode.window.showWarningMessage(`Sikraken found no test inputs for ${harness.originalName}. 
-								Sikraken requires at least one branching point in the function to generate test inputs. Please ensure 
-								that the function has at least one branching point (e.g., if statement, loop, etc.) and try again.`
-							);
-							return;
-						}
-
-						for (let index = 0; index < inputs.length; index++) {
-							const variable = variables[index] ?? `input${index + 1}`;
-							outputChannel.appendLine(`${variable} = ${inputs[index]}`);
-						
-						}
-
-						const testCaseName = `test_case_${currentIndex}`;
-						let expectedResult = "EXPECTED_RESULT";
-
-						loopProgress = testInputFiles.length / 30; // 30% of the progress bar is allocated to extracting test inputs
-						progress.report({ increment: loopProgress, message: `Extracting test inputs... (${currentIndex}/${testInputFiles.length})`});
-						
-						if (generateOutputs) {
-
-							// Evaluate the function with the generated inputs to an expected result
-							try {
-								expectedResult = await evaluateFunctionInput({
-									sourcePath: functionContext.sourceFile.path,
-									functionName: harness.originalName,
-									returnType: parsedFunction.returnType,
-									parameters: harness.parameters,
-									inputs,
-									workingDirectory: tempDirectory,
-								});
-							} catch (error) {
-								const message = error instanceof Error ? error.message : String(error);
-								vscode.window.showErrorMessage(`Could not evaluate ${testInputFile}: ${message}`);
-								return;
-							}
-							const testCaseBody = unityAssertionTemplate(
-								expectedResult,
-								`${harness.originalName}(${inputs.join(', ')})`,
-								parsedFunction.returnType,
-							);
-							testCases.push({
-								name: testCaseName,
-								body: testCaseBody
-							});
-							
-						} else {
-							// If not generating outputs, put a placeholder in the test case body
-							const testCaseBody = unityAssertionTemplate(
-								expectedResult,
-								`${harness.originalName}(${inputs.join(', ')})`,
-								parsedFunction.returnType,
-							);
-							testCases.push({
-								name: testCaseName,
-								body: testCaseBody
-							});
-						}
-						
-						currentIndex++;
-					}
-					outputChannel.show(true);
-				} catch (error) {
-					const message = error instanceof Error ? error.message : String(error);
-					vscode.window.showErrorMessage(`Could not read Sikraken test inputs: ${message}`);
+				if (!testCases) {
 					return;
 				}
-				
+
 				progress.report({ increment: 10, message: 'Generating test suite...' });
 
 				// Generate test cases for each input
-				const unityTestCases = testCases.map(testCase => {return {body: unityTestCaseTemplate(testCase), name: testCase.name};});
-				
+				const unityTestCases = testCases.map((testCase) => {
+					return { body: unityTestCaseTemplate(testCase), name: testCase.name };
+				});
+
 				const testSuiteName = `${harness.originalName}_test_suite.c`;
 				// Get current file directory
 				const filePath = path.dirname(activeEditor.document.uri.fsPath);
 				const testSuitePath = path.join(filePath, testSuiteName);
-				
+
 				// Get just the file name of the current file
 				const currentFileName = path.basename(activeEditor.document.uri.fsPath);
 				const testSuiteContent = unityTemplate(unityTestCases, currentFileName, generateOutputs);
-				
+
 				// Write test suite to file
-				try {
-					await fs.writeFile(testSuitePath, testSuiteContent, 'utf8');
-				} catch (error) {
-					const message = error instanceof Error ? error.message : String(error);
-					vscode.window.showErrorMessage(`Could not write test suite: ${message}`);
-					return;
-				}
+				await fs.writeFile(testSuitePath, testSuiteContent, 'utf8');
 
 				console.log(`Test suite generated: ${testSuitePath}`);
 				progress.report({ increment: 100, message: `Test suite generated successfully! : ${testSuitePath}` });
@@ -262,5 +184,6 @@ export async function generateTestsOnFunction(context: vscode.ExtensionContext) 
 					console.log('Removed temporary directory:', tempDirectory);
 				}
 			}
-		});
-	}
+		},
+	);
+}
