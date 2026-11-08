@@ -13,11 +13,12 @@ type RunnerOptions = {
 	outputFileName: string;
 	outputDir: string;
 	budget?: number;
+	debugMode?: boolean;
 	signal?: AbortSignal;
+	debugArtifactsDir?: string;
 };
 
 const DEFAULT_BUDGET = 10;
-
 
 export async function runSikraken(options: RunnerOptions): Promise<SikrakenRun> {
 	const budget = options.budget ?? DEFAULT_BUDGET;
@@ -44,14 +45,33 @@ export async function runSikraken(options: RunnerOptions): Promise<SikrakenRun> 
 		throw new Error(`Sikraken output directory is not writable: ${options.outputDir}`);
 	}
 
+	const mode = options.debugMode ? 'debug'  : 'release';
+	const startedAt = new Date().toISOString();
+
+	const arguementList = [
+		options.scriptPath,
+		mode,
+		`budget[${budget}]`,
+		`--output-dir=${options.outputDir}`,
+		options.inputPath,
+	];
+
 	try {
 		const result = await executeSikraken([
-			options.scriptPath,
-			'release',
-			`budget[${budget}]`,
-			`--output-dir=${options.outputDir}`,
-			options.inputPath,
+			...arguementList
 		], options.signal);
+
+		if (options.debugMode) {
+			await writeDebugArtifacts(options.debugArtifactsDir, {
+				command: ['bash', ...arguementList],
+				startedAt: startedAt,
+				finishedAt: new Date().toISOString(),
+				status: 'success',
+				stdout: result.stdout,
+				stderr: result.stderr,
+			});
+		}
+
 		return {
 			stdout: result.stdout,
 			stderr: result.stderr,
@@ -63,11 +83,23 @@ export async function runSikraken(options: RunnerOptions): Promise<SikrakenRun> 
 		const processError = error as {
 			code?: number | string;
 			signal?: string;
+			stdout?: string;
 			stderr?: string;
 			message?: string;
 		};
 		const status = processError.code ?? processError.signal ?? 'unknown status';
 		const details = processError.stderr?.trim() || processError.message || 'No diagnostic output.';
+
+		if (options.debugMode) {
+			await writeDebugArtifacts(options.debugArtifactsDir, {
+				command: ['bash', ...arguementList],
+				startedAt: startedAt,
+				finishedAt: new Date().toISOString(),
+				status: `Failed: ${status}`,
+				stdout: typeof processError.stdout === 'string' ? processError.stdout : '',
+				stderr: typeof processError.stderr === 'string' ? processError.stderr : details,
+			});
+		}
 		throw new Error(`Sikraken failed (${status}): ${details}`);
 	}
 }
@@ -87,6 +119,32 @@ function executeSikraken(argumentsList: string[], signal?: AbortSignal): Promise
 			resolve({ stdout, stderr });
 		});
 	});
+}
+
+async function writeDebugArtifacts(
+	artifactDirectory: string | undefined,
+	metadata: {
+		command: string[];
+		startedAt?: string;
+		finishedAt: string;
+		status: string;
+		stdout: string;
+		stderr: string;
+	},
+): Promise<void> {
+	if (!artifactDirectory) {
+		return;
+	}
+	await fs.mkdir(artifactDirectory, { recursive: true });
+	await Promise.all([
+		fs.writeFile(`${artifactDirectory}/stdout.log`, metadata.stdout, 'utf8'),
+		fs.writeFile(`${artifactDirectory}/stderr.log`, metadata.stderr, 'utf8'),
+		fs.writeFile(`${artifactDirectory}/metadata.json`, JSON.stringify({
+			...metadata,
+			stdout: undefined,
+			stderr: undefined,
+		}, null, 2), 'utf8'),
+	]);
 }
 
 function isAbortError(error: unknown): boolean {

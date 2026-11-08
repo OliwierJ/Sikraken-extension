@@ -35,7 +35,7 @@ export async function evaluateFunctionInput(options: EvaluateInputOptions): Prom
 		options.returnType,
 		argumentsList,
 	);
-	const temporaryDirectory = await fs.mkdtemp(path.join(options.workingDirectory, 'sikraken-eval-'));
+	const temporaryDirectory = await fs.mkdtemp(path.join(options.workingDirectory, 'sikraken_eval_'));
 	const driverPath = path.join(temporaryDirectory, 'driver.c');
 	const executablePath = path.join(temporaryDirectory, 'driver');
 	const sourceDirectory = path.dirname(options.sourcePath);

@@ -10,6 +10,7 @@ import { unityTestCaseTemplate, unityTemplate } from '../templates';
 import { ensureSikrakenPrerequisites } from '../services/sikrakenPrerequisites';
 import { extractTestInputs } from '../services/testInputParser';
 import { generateTestCases } from '../services/testCaseExtractor';
+import { createDebugRun } from '../services/debugArtifacts';
 
 export async function generateTestsOnFunction(context: vscode.ExtensionContext) {
 	const activeEditor = vscode.window.activeTextEditor;
@@ -34,6 +35,10 @@ export async function generateTestsOnFunction(context: vscode.ExtensionContext) 
 
 	// Load Sikraken settings for the current workspace
 	const sikrakenSettings: SikrakenSettings = loadSikrakenSettings(activeEditor.document.uri);
+
+	if (sikrakenSettings.debugMode) {
+		console.log('Sikraken settings:', sikrakenSettings);
+	}
 
 	// Check extension settings to determine whether to show the prompt
 	const generateOutputs: boolean = await determineOutputGeneration(sikrakenSettings);
@@ -69,8 +74,12 @@ export async function generateTestsOnFunction(context: vscode.ExtensionContext) 
 			const tempRoot = context.globalStorageUri.fsPath;
 			let tempDirectory: string | undefined;
 			try {
-				await fs.mkdir(tempRoot, { recursive: true });
-				tempDirectory = await fs.mkdtemp(path.join(tempRoot, 'sikraken-'));
+				const debugRun = sikrakenSettings.debugMode ? await createDebugRun(tempRoot) : undefined;
+				tempDirectory = debugRun 
+					? path.join(debugRun.runDirectory, 'input') 
+					: await fs.mkdtemp(path.join(tempRoot, 'sikraken_'));
+
+				await fs.mkdir(tempDirectory, { recursive: true });
 
 				// Create a temporary file for the harness with randomized name to avoid conflicts
 				const requestId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -80,7 +89,10 @@ export async function generateTestsOnFunction(context: vscode.ExtensionContext) 
 				await fs.writeFile(tempFilePath, harness.source, 'utf8');
 				const tempFileBaseName = path.basename(tempFilePath, path.extname(tempFilePath));
 
-				const outputDir = path.join(context.globalStorageUri.fsPath, 'sikraken_output');
+				const outputDir = debugRun
+					? debugRun.outputDirectory
+					: path.join(context.globalStorageUri.fsPath, 'sikraken_output');
+				const artifactDirectory = debugRun?.runDirectory;
 
 				const outputPath = path.join(outputDir, tempFileBaseName, 'test-suite');
 
@@ -103,6 +115,8 @@ export async function generateTestsOnFunction(context: vscode.ExtensionContext) 
 						outputFileName: tempFileBaseName,
 						outputDir: outputDir,
 						budget: sikrakenSettings.sikrakenBudget,
+						debugMode: sikrakenSettings.debugMode || false,
+						debugArtifactsDir: artifactDirectory,
 						signal: abortController.signal,
 					});
 
@@ -112,6 +126,15 @@ export async function generateTestsOnFunction(context: vscode.ExtensionContext) 
 					if (result.stdout && result.stdout.trim()) {
 						console.log(`Sikraken stdout: ${result.stdout}`);
 					}
+					if (sikrakenSettings.debugMode) {
+						const outputChannel = vscode.window.createOutputChannel('Sikraken Debug');
+						outputChannel.appendLine('--- stdout ---');
+						outputChannel.append(result.stdout);
+						outputChannel.appendLine('--- stderr ---');
+						outputChannel.append(result.stderr);
+						outputChannel.show(true);
+					}
+
 				} catch (error) {
 					const message = error instanceof Error ? error.message : String(error);
 					if (abortController.signal.aborted) {
@@ -137,6 +160,7 @@ export async function generateTestsOnFunction(context: vscode.ExtensionContext) 
 					parsedFunction,
 					functionContext,
 					tempDirectory,
+					sikrakenSettings,
 				});
 
 				if (!testCases) {
@@ -176,7 +200,7 @@ export async function generateTestsOnFunction(context: vscode.ExtensionContext) 
 					vscode.window.showErrorMessage(`Could not generate test suite: ${message}`);
 				}
 			} finally {
-				if (tempDirectory) {
+				if (tempDirectory && !sikrakenSettings.debugMode) {
 					await fs.rm(tempDirectory, {
 						recursive: true,
 						force: true,

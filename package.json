@@ -35,6 +35,18 @@
       {
         "command": "sikraken.showInstallInstructions",
         "title": "Show Sikraken Dependency Instructions"
+      },
+      {
+        "command": "sikraken.openDebugArtifacts",
+        "title": "Sikraken: Open Debug Artifacts Folder"
+      },
+      {
+        "command": "sikraken.openLatestDebugRun",
+        "title": "Sikraken: Open Latest Debug Run"
+      },
+      {
+        "command": "sikraken.deleteDebugArtifacts",
+        "title": "Sikraken: Delete Debug Artifacts"
       }
     ],
     "menus": {
@@ -99,6 +111,11 @@
           "type": "string",
           "description": "Directory for generated Unity test suites, relative to the workspace when not absolute.",
           "default": "./tests"
+        },
+        "sikraken.debugMode": {
+          "type": "boolean",
+          "description": "Enable debug mode to save Sikraken's output and artifacts for debugging purposes.",
+          "default": false
         }
       }
     }

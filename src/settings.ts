@@ -7,6 +7,7 @@ export type SikrakenSettings = {
     testGenerationMode: TestGenerationMode;
     sikrakenBudget: number;
     testSuiteOutputDirectory: string;
+    debugMode?: boolean;
 }
 
 /**
@@ -22,6 +23,7 @@ export function loadSikrakenSettings(resource: vscode.Uri): SikrakenSettings {
         testGenerationMode: config.get<TestGenerationMode>('testGenerationMode', 'prompt'),
         sikrakenBudget: config.get<number>('sikrakenBudget', 10),
         testSuiteOutputDirectory: config.get<string>('testSuiteOutputDirectory', './tests'),
+        debugMode: config.get<boolean>('debugMode', false),
     };
 }
 

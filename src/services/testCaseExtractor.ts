@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
+import * as fs from 'node:fs/promises';
 import { TestInput } from './testInputParser';
 import { TestFunction } from '../types';
 import { unityAssertionTemplate } from '../templates';
 import { evaluateFunctionInput } from './inputEvaluator';
+import { TrackedOutputChannel } from './TrackedOutputChannel';
 
 interface GenerateTestCasesParams {
 	testInputs: TestInput[];
@@ -12,13 +14,14 @@ interface GenerateTestCasesParams {
 	parsedFunction: any;
 	functionContext: any;
 	tempDirectory: string;
+	sikrakenSettings: any;
 }
 
 export async function generateTestCases(params: GenerateTestCasesParams) {
 	let currentIndex = 1;
 	let loopProgress = 0;
 	let testCases: TestFunction[] = [];
-	const outputChannel = vscode.window.createOutputChannel('Sikraken Test Inputs');
+	const outputChannel = new TrackedOutputChannel('Sikraken Test Inputs');
 
 	for (const testInput of params.testInputs) {
 		outputChannel.appendLine(`--- ${testInput.fileName} ---`);
@@ -74,6 +77,9 @@ export async function generateTestCases(params: GenerateTestCasesParams) {
 	}
 
 	outputChannel.show(true);
+	if (params.sikrakenSettings.debugMode) {
+		fs.writeFile(`${params.tempDirectory}/test_inputs.log`, outputChannel.toString(), 'utf8');
+	}
 
 	return testCases;
 }

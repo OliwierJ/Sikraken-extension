@@ -6,6 +6,8 @@ import { SikrakenSettings, loadSikrakenSettings } from '../settings';
 import { ensureSikrakenPrerequisites } from '../services/sikrakenPrerequisites';
 import { SIKRAKEN_PATH } from '../types';
 import { extractNondeterministicVariables, extractTestInputs } from '../services/testInputParser';
+import { createDebugRun } from '../services/debugArtifacts';
+import { TrackedOutputChannel } from '../services/TrackedOutputChannel';
 
 export async function runSikrakenOnFile(context: vscode.ExtensionContext): Promise<void> {
 	const activeEditor = vscode.window.activeTextEditor;
@@ -30,17 +32,27 @@ export async function runSikrakenOnFile(context: vscode.ExtensionContext): Promi
 			const fileName = path.basename(filePath, path.extname(filePath));
 
 			const sikrakenScriptPath = context.asAbsolutePath(SIKRAKEN_PATH);
-			const outputDir = path.join(context.globalStorageUri.fsPath, 'sikraken_output');
+			
+			// Load Sikraken settings for the current workspace
+			const sikrakenSettings: SikrakenSettings = loadSikrakenSettings(activeEditor.document.uri);
+			let outputDir = path.join(context.globalStorageUri.fsPath, 'sikraken_output');
+			let artifactDirectory: string | undefined;
+			
+			if (sikrakenSettings.debugMode) {
+				const debugRun = await createDebugRun(context.globalStorageUri.fsPath);
+				artifactDirectory = debugRun.runDirectory;
+				outputDir = debugRun.outputDirectory;
+				const outputChannel = vscode.window.createOutputChannel('Sikraken Debug');
+				outputChannel.appendLine(`Debug artifacts: ${artifactDirectory}`);
+				outputChannel.show(true);
+			}
 
 			const outputPath = path.join(outputDir, fileName, 'test-suite');
 
 			if (!(await ensureSikrakenPrerequisites(context, sikrakenScriptPath))) {
 				return;
 			}
-
-			// Load Sikraken settings for the current workspace
-			const sikrakenSettings: SikrakenSettings = loadSikrakenSettings(activeEditor.document.uri);
-
+			
 			progress.report({ increment: 10, message: 'Running Sikraken...' });
 			// Invoke Sikraken script with the selected file
 			try {
@@ -51,6 +63,8 @@ export async function runSikrakenOnFile(context: vscode.ExtensionContext): Promi
 					outputDir: outputDir,
 					budget: sikrakenSettings.sikrakenBudget,
 					signal: abortController.signal,
+					debugMode: sikrakenSettings.debugMode,
+					debugArtifactsDir: artifactDirectory
 				});
 
 				if (result.stderr && result.stderr.trim()) {
@@ -58,6 +72,14 @@ export async function runSikrakenOnFile(context: vscode.ExtensionContext): Promi
 				}
 				if (result.stdout && result.stdout.trim()) {
 					console.log(`Sikraken stdout: ${result.stdout}`);
+				}
+				if (sikrakenSettings.debugMode) {
+					const outputChannel = vscode.window.createOutputChannel('Sikraken Debug');
+					outputChannel.appendLine('--- stdout ---');
+					outputChannel.append(result.stdout);
+					outputChannel.appendLine('--- stderr ---');
+					outputChannel.append(result.stderr);
+					outputChannel.show(true);
 				}
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
@@ -73,7 +95,7 @@ export async function runSikrakenOnFile(context: vscode.ExtensionContext): Promi
 
 			const sourceCode = await fs.readFile(filePath, 'utf8');
 			const variables = extractNondeterministicVariables(sourceCode);
-			const outputChannel = vscode.window.createOutputChannel('Sikraken Test Inputs');
+			const outputChannel = new TrackedOutputChannel('Sikraken Test Inputs');
 			const testInputFiles = (await fs.readdir(outputPath)).filter((entry) => entry.startsWith('test_input-') && entry.endsWith('.xml')).sort();
 			let testInputs;
 
@@ -94,6 +116,9 @@ export async function runSikrakenOnFile(context: vscode.ExtensionContext): Promi
 				}
 			}
 			outputChannel.show(true);
+			if (sikrakenSettings.debugMode) {
+				await fs.writeFile(`${outputDir}/test_inputs.log`, outputChannel.toString(), 'utf8');
+			}
 
 			progress.report({ increment: 100, message: `Sikraken test inputs generated successfully!` });
 		},

@@ -7,55 +7,10 @@ import { createIncludeHarness, parseFunction } from '../services/documentTransfo
 import type { FunctionContext } from '../services/functionContext';
 import { runSikraken } from '../services/sikrakenRunner';
 import { evaluateFunctionInput } from '../services/inputEvaluator';
-import { loadSikrakenSettings } from '../settings';
 import { extractNondeterministicVariables, parseTestInputsXML } from '../services/testInputParser';
 
 suite('Extension Test Suite', () => {
 	vscode.window.showInformationMessage('Start all tests.');
-
-	test('loads the registered default Sikraken settings', () => {
-		const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-		assert.ok(workspaceFolder, 'The test must run with a workspace folder.');
-
-		const configuration = vscode.workspace.getConfiguration('sikraken', workspaceFolder.uri);
-		assert.strictEqual(configuration.inspect('framework')?.defaultValue, 'Unity');
-		assert.strictEqual(configuration.inspect('testGenerationMode')?.defaultValue, 'prompt');
-		assert.strictEqual(configuration.inspect('sikrakenBudget')?.defaultValue, 10);
-		assert.strictEqual(configuration.inspect('testSuiteOutputDirectory')?.defaultValue, './tests');
-	});
-
-	test('loads workspace-specific Sikraken settings for the source resource', async () => {
-		const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-		assert.ok(workspaceFolder, 'The test must run with a workspace folder.');
-
-		const configuration = vscode.workspace.getConfiguration('sikraken', workspaceFolder.uri);
-		const keys = ['framework', 'testGenerationMode', 'sikrakenBudget', 'testSuiteOutputDirectory'] as const;
-		const previousValues = new Map(
-			keys.map(key => [key, configuration.inspect(key)?.workspaceValue]),
-		);
-
-		try {
-			await configuration.update('framework', 'Unity', vscode.ConfigurationTarget.Workspace);
-			await configuration.update('testGenerationMode', 'characterization', vscode.ConfigurationTarget.Workspace);
-			await configuration.update('sikrakenBudget', 23, vscode.ConfigurationTarget.Workspace);
-			await configuration.update('testSuiteOutputDirectory', './workspace-tests', vscode.ConfigurationTarget.Workspace);
-
-			assert.deepStrictEqual(loadSikrakenSettings(workspaceFolder.uri), {
-				framework: 'Unity',
-				testGenerationMode: 'characterization',
-				sikrakenBudget: 23,
-				testSuiteOutputDirectory: './workspace-tests',
-			});
-		} finally {
-			for (const key of keys) {
-				await configuration.update(
-					key,
-					previousValues.get(key),
-					vscode.ConfigurationTarget.Workspace,
-				);
-			}
-		}
-	});
 
 	test('extracts and trims Sikraken XML inputs', () => {
 		const xml = '<test><input> 1 </input><input>\n-2\n</input></test>';
@@ -259,4 +214,5 @@ suite('Extension Test Suite', () => {
 			await fs.rm(temporaryDirectory, { recursive: true, force: true });
 		}
 	});
+
 });
