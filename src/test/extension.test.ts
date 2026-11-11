@@ -84,9 +84,9 @@ suite('Extension Test Suite', () => {
 			['double', 'unsigned long'],
 		);
 		assert.match(harness.source, /extern double __VERIFIER_nondet_double\(void\);/);
-		assert.match(harness.source, /extern unsigned long __VERIFIER_nondet_long\(void\);/);
+		assert.match(harness.source, /extern unsigned long __VERIFIER_nondet_ulong\(void\);/);
 		assert.match(harness.source, /__VERIFIER_nondet_double\(\)/);
-		assert.match(harness.source, /__VERIFIER_nondet_long\(\)/);
+		assert.match(harness.source, /__VERIFIER_nondet_ulong\(\)/);
 	});
 
 	test('evaluates a generated scalar input against the source function', async function () {

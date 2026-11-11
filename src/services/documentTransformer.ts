@@ -41,6 +41,13 @@ const SUPPORTED_C_TYPES: SupportedCType[] = [
     { name: 'long long', nondeterministicName: 'long_long' },
     { name: 'float', nondeterministicName: 'float' },
     { name: 'double', nondeterministicName: 'double' },
+    { name: 'unsigned char', nondeterministicName: 'uchar' },
+    { name: 'unsigned short', nondeterministicName: 'ushort' },
+    { name: 'unsigned int', nondeterministicName: 'uint' },
+    { name: 'unsigned long', nondeterministicName: 'ulong' },
+    { name: 'unsigned long long', nondeterministicName: 'ulong_long' },
+    { name: 'unsigned float', nondeterministicName: 'ufloat' },
+    { name: 'unsigned double', nondeterministicName: 'udouble' },
 ];
 
 const TYPE_QUALIFIERS = ['const', 'unsigned', 'signed'] as const;
@@ -61,8 +68,7 @@ const supportedTypeWithNameRegex = new RegExp(`^(${supportedTypePattern})\\s+([A
 const parseSupportedType = (type: string): SupportedCType | undefined => {
     const normalizedType = type.trim().replace(/\s+/g, ' ');
     const baseType = SUPPORTED_C_TYPES.find(
-        supportedType => supportedType.name === normalizedType ||
-            normalizedType.endsWith(` ${supportedType.name}`),
+        supportedType => supportedType.name === normalizedType
     );
 
     return baseType;
