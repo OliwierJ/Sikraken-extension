@@ -7,8 +7,7 @@ import { loadSikrakenSettings } from '../../settings';
 import { createDebugRun } from '../../services/debugArtifacts';
 import { runSikraken } from '../../services/sikrakenRunner';
 
-suite('Extension Configuration Test Suite', () => {
-	vscode.window.showInformationMessage('Start extension tests.');
+suite('Unit: Extension Configuration Test Suite', () => {
 
 	test('loads the registered default Sikraken settings', () => {
 		const workspaceFolder = vscode.workspace.workspaceFolders?.[0];

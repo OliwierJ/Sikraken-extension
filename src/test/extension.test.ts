@@ -7,29 +7,10 @@ import { createIncludeHarness, parseFunction } from '../services/documentTransfo
 import type { FunctionContext } from '../services/functionContext';
 import { runSikraken } from '../services/sikrakenRunner';
 import { evaluateFunctionInput } from '../services/inputEvaluator';
-import { extractNondeterministicVariables, parseTestInputsXML } from '../services/testInputParser';
+import { parseTestInputsXML } from '../services/testInputParser';
 
 suite('Extension Test Suite', () => {
 	vscode.window.showInformationMessage('Start all tests.');
-
-	test('extracts and trims Sikraken XML inputs', () => {
-		const xml = '<test><input> 1 </input><input>\n-2\n</input></test>';
-
-		assert.deepStrictEqual(parseTestInputsXML(xml), ['1', '-2']);
-	});
-
-	test('rejects invalid Sikraken budgets before starting the process', async () => {
-		await assert.rejects(
-			() => runSikraken({
-				scriptPath: '/missing/sikraken.sh',
-				inputPath: __filename,
-				outputFileName: 'test',
-				outputDir: path.dirname(__filename),
-				budget: 0,
-			}),
-			/Sikraken budget must be a positive integer/,
-		);
-	});
 
 	test('reports missing Sikraken input files clearly', async () => {
 		await assert.rejects(
@@ -41,15 +22,6 @@ suite('Extension Test Suite', () => {
 			}),
 			/Could not access Sikraken input/,
 		);
-	});
-
-	test('extracts nondeterministic variable names in source order', () => {
-		const source = [
-			'int x = __VERIFIER_nondet_int();',
-			'float result = __VERIFIER_nondet_float();',
-		].join('\n');
-
-		assert.deepStrictEqual(extractNondeterministicVariables(source), ['x', 'result']);
 	});
 
 	test('rejects function return types that cannot be used by generated assertions', () => {

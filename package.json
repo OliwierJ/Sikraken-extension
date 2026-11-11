@@ -127,6 +127,7 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
     "test": "vscode-test",
+    "test:unit": "vscode-test --grep Unit",
     "package": "vsce package"
   },
   "devDependencies": {
