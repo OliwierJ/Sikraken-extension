@@ -1,23 +1,25 @@
-import * as vscode from 'vscode';
 import * as fs from 'node:fs/promises';
+import * as vscode from 'vscode';
 import { TestInput } from './testInputParser';
 import { TestFunction } from '../types';
 import { unityAssertionTemplate } from '../templates';
 import { evaluateFunctionInput } from './inputEvaluator';
 import { TrackedOutputChannel } from './TrackedOutputChannel';
+import type { FunctionContext } from './functionContext';
+import type { GeneratedHarness, ParsedFunction } from './documentTransformer';
 
-interface GenerateTestCasesParams {
+export interface GenerateTestCasesParams {
 	testInputs: TestInput[];
 	generateOutputs: boolean;
 	progress: vscode.Progress<{ increment: number; message?: string }>;
-	harness: any;
-	parsedFunction: any;
-	functionContext: any;
+	harness: GeneratedHarness;
+	parsedFunction: ParsedFunction;
+	functionContext: FunctionContext;
 	tempDirectory: string;
-	sikrakenSettings: any;
+	debugMode: boolean;
 }
 
-export async function generateTestCases(params: GenerateTestCasesParams) {
+export async function generateTestCases(params: GenerateTestCasesParams): Promise<TestFunction[]> {
 	let currentIndex = 1;
 	let loopProgress = 0;
 	let testCases: TestFunction[] = [];
@@ -28,14 +30,14 @@ export async function generateTestCases(params: GenerateTestCasesParams) {
 
 		// Check to see if there are any inputs
 		if (testInput.inputs.length === 0) {
-			vscode.window.showWarningMessage(`Sikraken found no test inputs for ${params.harness.originalName}. 
-                Sikraken requires at least one branching point in the function to generate test inputs. Please ensure 
-                that the function has at least one branching point (e.g., if statement, loop, etc.) and try again.`);
-			return;
+			throw new Error(
+				`Sikraken found no test inputs for ${params.harness.originalName}. ` +
+				'Sikraken requires at least one branching point in the function to generate test inputs.',
+			);
 		}
 
 		for (let index = 0; index < testInput.inputs.length; index++) {
-			const variable = params.harness.parameters[index].name ?? `input${index + 1}`;
+			const variable = params.harness.parameters[index]?.name ?? `input${index + 1}`;
 			outputChannel.appendLine(`${variable} = ${testInput.inputs[index]}`);
 		}
 
@@ -58,8 +60,7 @@ export async function generateTestCases(params: GenerateTestCasesParams) {
 				});
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
-				vscode.window.showErrorMessage(`Could not evaluate ${testInput.fileName}: ${message}`);
-				return;
+				throw new Error(`Could not evaluate ${testInput.fileName}: ${message}`);
 			}
 		}
 		// If not generating outputs, put a placeholder in the test case body
@@ -77,8 +78,8 @@ export async function generateTestCases(params: GenerateTestCasesParams) {
 	}
 
 	outputChannel.show(true);
-	if (params.sikrakenSettings.debugMode) {
-		fs.writeFile(`${params.tempDirectory}/test_inputs.log`, outputChannel.toString(), 'utf8');
+	if (params.debugMode) {
+		await fs.writeFile(`${params.tempDirectory}/test_inputs.log`, outputChannel.toString(), 'utf8');
 	}
 
 	return testCases;

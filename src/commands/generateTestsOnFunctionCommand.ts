@@ -160,7 +160,7 @@ export async function generateTestsOnFunction(context: vscode.ExtensionContext) 
 					parsedFunction,
 					functionContext,
 					tempDirectory,
-					sikrakenSettings,
+					debugMode: sikrakenSettings.debugMode || false,
 				});
 
 				if (!testCases) {
