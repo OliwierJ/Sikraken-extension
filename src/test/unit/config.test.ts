@@ -3,9 +3,9 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import { runSikraken } from '../services/sikrakenRunner';
-import { loadSikrakenSettings } from '../settings';
-import { createDebugRun } from '../services/debugArtifacts';
+import { loadSikrakenSettings } from '../../settings';
+import { createDebugRun } from '../../services/debugArtifacts';
+import { runSikraken } from '../../services/sikrakenRunner';
 
 suite('Extension Configuration Test Suite', () => {
 	vscode.window.showInformationMessage('Start extension tests.');

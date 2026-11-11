@@ -7,6 +7,7 @@ export type FunctionParameter = {
     name: string;
     baseType: string;
     nondeterministicName: string;
+    signedness?: 'signed' | 'unsigned';
 };
 
 export type TransformedFunction = {
@@ -38,17 +39,10 @@ const SUPPORTED_C_TYPES: SupportedCType[] = [
     { name: 'short', nondeterministicName: 'short' },
     { name: 'int', nondeterministicName: 'int' },
     { name: 'long', nondeterministicName: 'long' },
-    { name: 'long long', nondeterministicName: 'long_long' },
+    { name: 'long long', nondeterministicName: 'longlong' },
     { name: 'float', nondeterministicName: 'float' },
-    { name: 'double', nondeterministicName: 'double' },
-    { name: 'unsigned char', nondeterministicName: 'uchar' },
-    { name: 'unsigned short', nondeterministicName: 'ushort' },
-    { name: 'unsigned int', nondeterministicName: 'uint' },
-    { name: 'unsigned long', nondeterministicName: 'ulong' },
-    { name: 'unsigned long long', nondeterministicName: 'ulong_long' },
-    { name: 'unsigned float', nondeterministicName: 'ufloat' },
-    { name: 'unsigned double', nondeterministicName: 'udouble' },
-];
+    { name: 'double', nondeterministicName: 'double' }
+] as const;
 
 const TYPE_QUALIFIERS = ['const', 'unsigned', 'signed'] as const;
 
@@ -67,8 +61,9 @@ const supportedTypeWithNameRegex = new RegExp(`^(${supportedTypePattern})\\s+([A
 
 const parseSupportedType = (type: string): SupportedCType | undefined => {
     const normalizedType = type.trim().replace(/\s+/g, ' ');
+    const baseTypeName = normalizedType.replace(/^(?:(?:const|unsigned|signed)\s+)+/, '');
     const baseType = SUPPORTED_C_TYPES.find(
-        supportedType => supportedType.name === normalizedType
+        supportedType => supportedType.name === baseTypeName,
     );
 
     return baseType;
@@ -169,11 +164,18 @@ export function parseFunction(functionContext: FunctionContext): ParsedFunction 
         }
 
         const supportedType = getSupportedType(match[1], 'parameter type');
+
+        const signedness = /\bunsigned\b/.test(match[1]) ? 'unsigned' : 'signed';
+        const nondeterministicName = signedness === 'unsigned'
+            ? `u${supportedType.nondeterministicName}`
+            : supportedType.nondeterministicName;
+
         return {
             type: match[1],
             name: match[2],
+            signedness,
             baseType: match[1],
-            nondeterministicName: supportedType.nondeterministicName,
+            nondeterministicName,
         };
     });
 
@@ -234,4 +236,3 @@ export function createIncludeHarness(context: FunctionContext, parsedFunction: P
 function validCStringPath(value: string): string {
     return `"${value.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
 }
-

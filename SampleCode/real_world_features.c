@@ -36,6 +36,22 @@ int decode_status_word(
     return 5;
 }
 
+int confirm_checksum(const unsigned long data, unsigned int length) {
+
+    if (length == 0) {
+        return -1;
+    }
+
+    if (data % length == 0) {
+        return 1;
+    }
+
+    if (data % length == 1) {
+        return 0;
+    }
+    return 0;
+}
+
 /* Supported: scalar fixed-point conversion with saturation. */
 // Sikraken Error Nb: 1: Sikraken warning level 1 Integer labeling failed
 int millivolts_to_percent(unsigned long millivolts, int calibration_offset)
