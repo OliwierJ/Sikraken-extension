@@ -1,5 +1,5 @@
 import * as assert from 'node:assert';
-import { createIncludeHarness, parseFunction } from '../../services/documentTransformer';
+import { createIncludeHarness, parseFunction } from '../../services/functionParsing/documentTransformer';
 import type { FunctionContext } from '../../services/functionContext';
 
 function createContext(source: string, sourcePath = '/tmp/functions.c'): FunctionContext {
@@ -48,6 +48,7 @@ suite('Unit: Document Transformer', () => {
 		assert.strictEqual(parsedFunction.returnType, 'double');
 		assert.deepStrictEqual(parsedFunction.parameters, [
 			{
+				kind: 'scalar',
 				type: 'double',
 				name: 'value',
 				baseType: 'double',
@@ -55,6 +56,7 @@ suite('Unit: Document Transformer', () => {
 				nondeterministicName: 'double',
 			},
 			{
+				kind: 'scalar',
 				type: 'unsigned long',
 				name: 'count',
 				baseType: 'unsigned long',
@@ -147,6 +149,18 @@ suite('Unit: Document Transformer', () => {
         // The include path should be properly escaped
         assert.match(harness.source, /#include "\/tmp\/my functions\.c"/);
     });
+
+	test('generates scalar parameters using nondeterministic values', () => {
+		const source = 'int classify(int value) { return value > 10; }';
+		const parsedFunction = parseFunction(createContext(source));
+		const harness = createIncludeHarness(createContext(source), parsedFunction);
+
+		assert.match(
+			harness.source,
+			/int value = __VERIFIER_nondet_int\(\);/,
+		);
+		assert.match(harness.source, /classify\(value\);/);
+	});
 
     unsupportedReturnTypes.forEach((returnType) => {
         test(`rejects unsupported return type: ${returnType}`, () => {

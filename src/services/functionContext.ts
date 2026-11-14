@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { FunctionParameter } from './documentTransformer';
+import { FunctionParameter } from './functionParsing/documentTransformer';
 
 export type CompilerContext = {
     workingDirectory: string;

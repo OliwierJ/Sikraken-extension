@@ -2,7 +2,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import type { FunctionParameter } from './documentTransformer';
+import type { FunctionParameter } from './functionParsing/documentTransformer';
 
 const execFileAsync = promisify(execFile);
 const RESULT_PREFIX = 'SIKRAKEN_RESULT:';

@@ -1,4 +1,4 @@
-import { FunctionParameter } from "./services/documentTransformer";
+import { FunctionParameter } from "./services/functionParsing/types";
 
 
 export type TestCase = {
@@ -6,9 +6,15 @@ export type TestCase = {
     body: string;
 };
 
-export const nondeterministicTemplate = (parameter: FunctionParameter) =>
-	`\t${parameter.type} ${parameter.name} = ` +
-	`__VERIFIER_nondet_${parameter.nondeterministicName}();`;
+export const nondeterministicTemplate = (parameter: FunctionParameter) => {
+	switch (parameter.kind) {
+		case 'scalar':
+			return `\t${parameter.type} ${parameter.name} = ` +
+			`__VERIFIER_nondet_${parameter.nondeterministicName}();`;
+		case 'pointer':
+			throw new Error('Pointer parameters are not supported currently.');
+	}
+};
 
 
 export const unityTemplate = (testCases: TestCase[], include: string, generateOutputs: boolean) => 

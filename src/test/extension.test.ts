@@ -3,11 +3,12 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import { createIncludeHarness, parseFunction } from '../services/documentTransformer';
+import { createIncludeHarness, parseFunction } from '../services/functionParsing/documentTransformer';
 import type { FunctionContext } from '../services/functionContext';
 import { runSikraken } from '../services/sikrakenRunner';
 import { evaluateFunctionInput } from '../services/inputEvaluator';
 import { parseTestInputsXML } from '../services/testInputParser';
+import { ScalarParameter } from '../services/functionParsing/types';
 
 suite('Extension Test Suite', () => {
 	vscode.window.showInformationMessage('Start all tests.');
@@ -52,7 +53,9 @@ suite('Extension Test Suite', () => {
 		const harness = createIncludeHarness(context, parsedFunction);
 
 		assert.deepStrictEqual(
-			parsedFunction.parameters.map(parameter => parameter.baseType),
+			parsedFunction.parameters
+				.filter((parameter): parameter is ScalarParameter => parameter.kind === 'scalar')
+				.map((parameter) => parameter.baseType),
 			['double', 'unsigned long'],
 		);
 		assert.match(harness.source, /extern double __VERIFIER_nondet_double\(void\);/);
@@ -78,6 +81,7 @@ suite('Extension Test Suite', () => {
 				functionName: 'classify',
 				returnType: 'int',
 				parameters: [{
+					kind: 'scalar',
 					type: 'int',
 					name: 'value',
 					baseType: 'int',
@@ -114,6 +118,7 @@ suite('Extension Test Suite', () => {
 				functionName: 'is_positive',
 				returnType: 'int',
 				parameters: [{
+					kind: 'scalar',
 					type: 'int',
 					name: 'value',
 					baseType: 'int',

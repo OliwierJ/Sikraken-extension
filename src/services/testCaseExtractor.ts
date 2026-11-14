@@ -6,7 +6,7 @@ import { unityAssertionTemplate } from '../templates';
 import { evaluateFunctionInput } from './inputEvaluator';
 import { TrackedOutputChannel } from './TrackedOutputChannel';
 import type { FunctionContext } from './functionContext';
-import type { GeneratedHarness, ParsedFunction } from './documentTransformer';
+import { GeneratedHarness, ParsedFunction } from './functionParsing/types';
 
 export interface GenerateTestCasesParams {
 	testInputs: TestInput[];

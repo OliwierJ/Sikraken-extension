@@ -3,7 +3,7 @@ import * as fs from 'node:fs/promises';
 import * as vscode from 'vscode';
 import { SIKRAKEN_PATH } from '../types';
 import { buildFunctionContext } from '../services/buildFunctionContext';
-import { parseFunctionSymbols, GeneratedHarness, ParsedFunction, parseFunction, createIncludeHarness } from '../services/documentTransformer';
+import { parseFunctionSymbols, parseFunction, createIncludeHarness } from '../services/functionParsing/documentTransformer';
 import { runSikraken } from '../services/sikrakenRunner';
 import { SikrakenSettings, loadSikrakenSettings, determineOutputGeneration } from '../settings';
 import { unityTestCaseTemplate, unityTemplate } from '../templates';
@@ -11,6 +11,7 @@ import { ensureSikrakenPrerequisites } from '../services/sikrakenPrerequisites';
 import { extractTestInputs } from '../services/testInputParser';
 import { generateTestCases } from '../services/testCaseExtractor';
 import { createDebugRun } from '../services/debugArtifacts';
+import { GeneratedHarness, ParsedFunction } from '../services/functionParsing/types';
 
 export async function generateTestsOnFunction(context: vscode.ExtensionContext) {
 	const activeEditor = vscode.window.activeTextEditor;
