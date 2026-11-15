@@ -120,6 +120,9 @@
       }
     }
   },
+  "dependencies": {
+    "ms-vscode.cpptools-extension-pack": "^1.0.2"
+  },
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
@@ -128,6 +131,8 @@
     "lint": "eslint src",
     "test": "vscode-test",
     "test:unit": "vscode-test --grep Unit",
+    "test:unit:quiet": "bash -o pipefail -c 'FORCE_COLOR=1 npm run test:unit 2>&1 | grep -vE \"\\\\[(ChatModelSelection|AgentHost)\\\\]|^Unknown channel:|AgentHost\"; exit \\${PIPESTATUS[0]}'",
+    "test:integration": "vscode-test --grep Integration",
     "package": "vsce package"
   },
   "devDependencies": {
