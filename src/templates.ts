@@ -12,7 +12,10 @@ export const nondeterministicTemplate = (parameter: FunctionParameter) => {
 			return `\t${parameter.type} ${parameter.name} = ` +
 			`__VERIFIER_nondet_${parameter.nondeterministicName}();`;
 		case 'pointer':
-			throw new Error('Pointer parameters are not supported currently.');
+			return `\t${parameter.pointeeType} ${parameter.name}_SIK_storage = __VERIFIER_nondet_${parameter.pointeeNondeterministicName}();` +
+			`\n\tint ${parameter.nullIndicatorName} = __VERIFIER_nondet_int();` +
+			`\n\t${parameter.type.trim()} ${parameter.name} = ${parameter.nullIndicatorName} ? NULL : &${parameter.name}_SIK_storage;`;
+		
 	}
 };
 

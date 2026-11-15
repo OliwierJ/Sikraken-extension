@@ -26,12 +26,6 @@ const unsupportedReturnTypes = [
 ] as const;
 
 const unsupportedParameterTypes = [
-    'int*',
-    'float*',
-    'char*',
-    'unsigned char*',
-    'long long*',
-    'unsigned long long*',
     'struct MyStruct',
     'union MyUnion',
     'enum MyEnum',
@@ -73,13 +67,6 @@ suite('Unit: Document Transformer', () => {
 
 		assert.strictEqual(parsedFunction.name, 'reset');
 		assert.deepStrictEqual(parsedFunction.parameters, []);
-	});
-
-	test('rejects unsupported parameter types', () => {
-		assert.throws(
-			() => parseFunction(createContext('int read(int *value) { return *value; }')),
-			/Unsupported parameter: int \*value/,
-		);
 	});
 
 	test('creates a harness with nondeterministic declarations and a function call', () => {
@@ -160,6 +147,26 @@ suite('Unit: Document Transformer', () => {
 			/int value = __VERIFIER_nondet_int\(\);/,
 		);
 		assert.match(harness.source, /classify\(value\);/);
+	});
+
+	test('generates pointer parameters using nondeterministic values and null indicators', () => {
+		const source = 'int process(int* ptr) { return ptr ? *ptr : 0; }';
+		const parsedFunction = parseFunction(createContext(source));
+		const harness = createIncludeHarness(createContext(source), parsedFunction);
+
+		assert.match(
+			harness.source,
+			/int ptr_SIK_storage = __VERIFIER_nondet_int\(\);/,
+		);
+		assert.match(
+			harness.source,
+			/int ptr_SIK_is_null = __VERIFIER_nondet_int\(\);/,
+		);
+		assert.match(
+			harness.source,
+			/int\* ptr = ptr_SIK_is_null \? NULL : &ptr_SIK_storage;/,
+		);
+		assert.match(harness.source, /process\(ptr\);/);
 	});
 
     unsupportedReturnTypes.forEach((returnType) => {
