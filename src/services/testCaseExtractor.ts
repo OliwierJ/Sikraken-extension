@@ -7,6 +7,7 @@ import { evaluateFunctionInput } from './inputEvaluator';
 import { TrackedOutputChannel } from './TrackedOutputChannel';
 import type { FunctionContext } from './functionContext';
 import { GeneratedHarness, ParsedFunction } from './functionParsing/types';
+import { prepareFunctionCall } from './functionInputSetup';
 
 export interface GenerateTestCasesParams {
 	testInputs: TestInput[];
@@ -63,11 +64,14 @@ export async function generateTestCases(params: GenerateTestCasesParams): Promis
 				throw new Error(`Could not evaluate ${testInput.fileName}: ${message}`);
 			}
 		}
+		const preparedFunctionCall = prepareFunctionCall(params.harness.parameters, testInput.inputs);
+
 		// If not generating outputs, put a placeholder in the test case body
 		const testCaseBody = unityAssertionTemplate(
 			expectedResult,
-			`${params.harness.originalName}(${testInput.inputs.join(', ')})`,
+			`${params.harness.originalName}(${preparedFunctionCall.argumentsList.join(', ')})`,
 			params.parsedFunction.returnType,
+			preparedFunctionCall.setupCode
 		);
 		testCases.push({
 			name: testCaseName,

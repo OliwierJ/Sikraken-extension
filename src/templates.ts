@@ -47,7 +47,7 @@ export const unityTestCaseTemplate = (testCase: { name: string, body: string }) 
 }
 `;
 
-export function unityAssertionTemplate(expected: string, actual: string, returnType: string): string {
+export function unityAssertionTemplate(expected: string, actual: string, returnType: string, setup: string[]): string {
 	const normalizedType = returnType.replace(/\s+/g, ' ').trim();
 	const macro = /\bdouble\b/.test(normalizedType)
 		? 'TEST_ASSERT_EQUAL_DOUBLE'
@@ -55,5 +55,5 @@ export function unityAssertionTemplate(expected: string, actual: string, returnT
 			? 'TEST_ASSERT_EQUAL_FLOAT'
 			: 'TEST_ASSERT_EQUAL';
 
-	return `${macro}(${expected}, ${actual});`;
+	return `${setup.join('\n\t')}\n    ${macro}(${expected}, ${actual});`;
 }

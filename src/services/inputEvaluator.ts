@@ -3,6 +3,7 @@ import * as path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import type { FunctionParameter } from './functionParsing/documentTransformer';
+import { PreparedFunctionCall, prepareFunctionCall } from './functionInputSetup';
 
 const execFileAsync = promisify(execFile);
 const RESULT_PREFIX = 'SIKRAKEN_RESULT:';
@@ -23,17 +24,13 @@ export async function evaluateFunctionInput(options: EvaluateInputOptions): Prom
 		);
 	}
 
-	// Validate each input against its corresponding parameter type and prepare the argument list for the function call
-	const argumentsList = options.inputs.map((input, index) => {
-		validateScalarLiteral(input, options.parameters[index].name);
-		return input;
-	}).join(', ');
+	const preparedFunctionCall = prepareFunctionCall(options.parameters, options.inputs);
 
 	const driverSource = createEvaluatorSource(
 		options.sourcePath,
 		options.functionName,
 		options.returnType,
-		argumentsList,
+		preparedFunctionCall
 	);
 	const temporaryDirectory = await fs.mkdtemp(path.join(options.workingDirectory, 'sikraken_eval_'));
 	const driverPath = path.join(temporaryDirectory, 'driver.c');
@@ -76,11 +73,11 @@ export async function evaluateFunctionInput(options: EvaluateInputOptions): Prom
 	}
 }
 
-function createEvaluatorSource(sourcePath: string, functionName: string, returnType: string, argumentsList: string): string {
+function createEvaluatorSource(sourcePath: string, functionName: string, returnType: string, preparedFunctionCall: PreparedFunctionCall): string {
 	
 	const includePath = toCStringLiteral(sourcePath);
-	const call = `${functionName}(${argumentsList})`;
 	const normalizedReturnType = returnType.replace(/\s+/g, ' ').trim();
+	const call = `${functionName}(${preparedFunctionCall.argumentsList.join(', ')})`;
 	const output = isFloatingPointType(normalizedReturnType)
 		? `printf("${RESULT_PREFIX}%.*g\\n", 17, (double)(${call}));`
 		: `printf("${RESULT_PREFIX}%lld\\n", (long long)(${call}));`;
@@ -88,6 +85,7 @@ function createEvaluatorSource(sourcePath: string, functionName: string, returnT
 	return [
 		'#include <stdio.h>',
 		'#define main sikraken_original_main',
+		'#include <stddef.h>',
 		`#include ${includePath}`,
 		'#undef main',
 		'',
@@ -102,6 +100,7 @@ function createEvaluatorSource(sourcePath: string, functionName: string, returnT
 		'',
 		'int main(void)',
 		'{',
+		`${preparedFunctionCall.setupCode.join('\n')}`,
 		`    ${output}`,
 		'    return 0;',
 		'}',
@@ -113,13 +112,6 @@ function isFloatingPointType(type: string): boolean {
 	return /\b(float|double)\b/.test(type);
 }
 
-function validateScalarLiteral(value: string, parameterName: string): void {
-	const literalPattern =
-		/^[+-]?(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?|0[xX][0-9a-fA-F]+)(?:[uUlLfF]*)$/;
-	if (!literalPattern.test(value.trim())) {
-		throw new Error(`Unsupported generated value for parameter ${parameterName}: ${value}`);
-	}
-}
 
 function toCStringLiteral(value: string): string {
 	return `"${value.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;

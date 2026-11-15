@@ -151,7 +151,7 @@ export function parseFunction(functionContext: FunctionContext): ParsedFunction 
                 kind: 'pointer',
                 type: match[1] + match[2],
                 name: match[3],
-                pointeeType: supportedType.name,
+                pointeeType: match[1],
                 pointeeBaseType: supportedType.name,
                 pointeeNondeterministicName: nondeterministicName,
                 nullIndicatorName: `${match[3]}_SIK_is_null`,

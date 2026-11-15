@@ -100,7 +100,7 @@ export async function runSikrakenOnFile(context: vscode.ExtensionContext): Promi
 			let testInputs;
 
 			try {
-				testInputs = await extractTestInputs(testInputFiles, outputPath);
+				testInputs = await extractTestInputs(testInputFiles, outputPath, );
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
 				vscode.window.showErrorMessage(`Could not read Sikraken test inputs: ${message}`);

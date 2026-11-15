@@ -151,7 +151,7 @@ export async function generateTestsOnFunction(context: vscode.ExtensionContext) 
 
 				const testInputFiles = (await fs.readdir(outputPath)).filter((entry) => entry.startsWith('test_input-') && entry.endsWith('.xml')).sort();
 
-				const testInputs = await extractTestInputs(testInputFiles, outputPath);
+				const testInputs = await extractTestInputs(testInputFiles, outputPath, parsedFunction.parameters);
 
 				const testCases = await generateTestCases({
 					testInputs,
