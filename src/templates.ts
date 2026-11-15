@@ -21,7 +21,7 @@ export const nondeterministicTemplate = (parameter: FunctionParameter) => {
 
 
 export const unityTemplate = (testCases: TestCase[], include: string, generateOutputs: boolean) => 
-`#include "stddef.h"
+`#include <stddef.h>
 #include "unity.h"
 ${include ? `#include "${include}"` : ''}\n
 void setUp(void) {}

@@ -186,21 +186,31 @@ export function createIncludeHarness(context: FunctionContext, parsedFunction: P
 	// Generate nondeterministic variable declarations for each parameter
 	const nondeterministicDeclarations = parsedFunction.parameters
         .map((parameter) => nondeterministicTemplate(parameter)).join('\n');
-
+    
 	// Generate nondeterministic function prototypes for each unique parameter type
-	const nondeterministicPrototypes = [
-		...new Map(
-			parsedFunction.parameters
-				.map((parameter) => {
-                    if (parameter.kind === 'pointer') {
-                        return [parameter.pointeeBaseType, parameter.pointeeNondeterministicName];
-                    }
-                    return [parameter.baseType, parameter.nondeterministicName];
-                }),
-		),
-	]
-		.map(([type, nondeterministicName]) => `extern ${type} __VERIFIER_nondet_${nondeterministicName}(void);`)
-		.join('\n');
+	const prototypeEntries = parsedFunction.parameters.map((parameter) => {
+        if (parameter.kind === 'pointer') {
+            return [
+                parameter.pointeeBaseType,
+                parameter.pointeeNondeterministicName,
+            ] as const;
+        }
+
+        return [
+            parameter.baseType,
+            parameter.nondeterministicName,
+        ] as const;
+    });
+
+    if (parsedFunction.parameters.some(parameter => parameter.kind === 'pointer')) {
+        prototypeEntries.push(['int', 'int']);
+    }
+
+    const nondeterministicPrototypes = [...new Map(prototypeEntries)]
+        .map(([type, nondeterministicName]) =>
+            `extern ${type} __VERIFIER_nondet_${nondeterministicName}(void);`,
+        )
+        .join('\n');
 
 	const argumentsList = parsedFunction.parameters.map((parameter) => parameter.name).join(', ');
 
