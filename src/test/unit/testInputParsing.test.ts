@@ -7,6 +7,7 @@ import {
 	extractTestInputs,
 	parseTestInputsXML,
 } from '../../services/testInputParser';
+import { pointerParam, scalarParam } from './testHelpers';
 
 suite('Unit: Test Input Parsing', () => {
 	
@@ -52,5 +53,103 @@ suite('Unit: Test Input Parsing', () => {
 			() => extractTestInputs([], '/tmp/sikraken-output'),
 			/Sikraken produced no test inputs/,
 		);
+	});
+
+	test('supports pointer parameter', async () => {
+		const outputPath = await fs.mkdtemp(path.join(os.tmpdir(), 'sikraken-inputs-'));
+		try {
+			const parameters = [
+				pointerParam('int*', 'ptr', 'int'),
+			];
+			await fs.writeFile(path.join(outputPath, 'test_input-1.xml'), '<test><input>1</input><input>0</input></test>');
+
+			assert.deepStrictEqual(
+				await extractTestInputs(['test_input-1.xml'], outputPath, parameters),
+				[
+					{ fileName: 'test_input-1.xml', inputs: ['1'] },
+				],
+			);
+		} finally {
+			await fs.rm(outputPath, { recursive: true, force: true });
+		}
+	});
+
+	test('supports NULL pointer parameter', async () => {
+		const outputPath = await fs.mkdtemp(path.join(os.tmpdir(), 'sikraken-inputs-'));
+		try {
+			const parameters = [
+				pointerParam('int*', 'ptr', 'int'),
+			];
+			await fs.writeFile(path.join(outputPath, 'test_input-1.xml'), '<test><input>1</input><input>1</input></test>');
+
+			assert.deepStrictEqual(
+				await extractTestInputs(['test_input-1.xml'], outputPath, parameters),
+				[
+					{ fileName: 'test_input-1.xml', inputs: ['NULL'] },
+				],
+			);
+		} finally {
+			await fs.rm(outputPath, { recursive: true, force: true });
+		}
+	});
+
+	test('supports multiple pointer parameters', async () => {
+		const outputPath = await fs.mkdtemp(path.join(os.tmpdir(), 'sikraken-inputs-'));
+		try {
+			const parameters = [
+				pointerParam('int*', 'ptr', 'int'),
+				pointerParam('float*', 'ptr2', 'float'),
+			];
+			await fs.writeFile(path.join(outputPath, 'test_input-1.xml'), '<test><input>1</input><input>0</input><input>42</input><input>0</input></test>');
+
+			assert.deepStrictEqual(
+				await extractTestInputs(['test_input-1.xml'], outputPath, parameters),
+				[
+					{ fileName: 'test_input-1.xml', inputs: ['1', '42'] },
+				],
+			);
+		} finally {
+			await fs.rm(outputPath, { recursive: true, force: true });
+		}
+	});
+
+	test('supports scalar followed by pointer parameters', async () => {
+		const outputPath = await fs.mkdtemp(path.join(os.tmpdir(), 'sikraken-inputs-'));
+		try {
+			const parameters = [
+				scalarParam('int', 'a'),
+				pointerParam('float*', 'ptr2', 'float'),
+			];
+			await fs.writeFile(path.join(outputPath, 'test_input-1.xml'), '<test><input>404</input><input>42</input><input>0</input></test>');
+
+			assert.deepStrictEqual(
+				await extractTestInputs(['test_input-1.xml'], outputPath, parameters),
+				[
+					{ fileName: 'test_input-1.xml', inputs: ['404', '42'] },
+				],
+			);
+		} finally {
+			await fs.rm(outputPath, { recursive: true, force: true });
+		}
+	});
+
+		test('supports pointer followed by scalar parameters', async () => {
+		const outputPath = await fs.mkdtemp(path.join(os.tmpdir(), 'sikraken-inputs-'));
+		try {
+			const parameters = [
+				pointerParam('float*', 'ptr2', 'float'),
+				scalarParam('int', 'a'),
+			];
+			await fs.writeFile(path.join(outputPath, 'test_input-1.xml'), '<test><input>404</input><input>0</input><input>42</input></test>');
+
+			assert.deepStrictEqual(
+				await extractTestInputs(['test_input-1.xml'], outputPath, parameters),
+				[
+					{ fileName: 'test_input-1.xml', inputs: ['404', '42'] },
+				],
+			);
+		} finally {
+			await fs.rm(outputPath, { recursive: true, force: true });
+		}
 	});
 });

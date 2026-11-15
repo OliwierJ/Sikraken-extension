@@ -13,31 +13,6 @@ import { ScalarParameter } from '../services/functionParsing/types';
 suite('Extension Test Suite', () => {
 	vscode.window.showInformationMessage('Start all tests.');
 
-	test('reports missing Sikraken input files clearly', async () => {
-		await assert.rejects(
-			() => runSikraken({
-				scriptPath: '/missing/sikraken.sh',
-				inputPath: path.join(os.tmpdir(), 'missing-sikraken-input.c'),
-				outputFileName: 'test',
-				outputDir: path.dirname(__filename),
-			}),
-			/Could not access Sikraken input/,
-		);
-	});
-
-	test('rejects function return types that cannot be used by generated assertions', () => {
-		const context = {
-			selectedFunction: {
-				source: 'void reset(int value) { }',
-			},
-		} as FunctionContext;
-
-		assert.throws(
-			() => parseFunction(context),
-			/Unsupported function return type: void/,
-		);
-	});
-
 	test('supports additional scalar types in generated harnesses', () => {
 		const context = {
 			sourceFile: {

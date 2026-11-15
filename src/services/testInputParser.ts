@@ -39,7 +39,7 @@ export async function extractTestInputs(files: string[], outputPath: string, par
 		for (let i = 0; i < newInputs.length; i++) {
 			if (parameters[parameterIndex].kind === 'pointer') {
 				// Combine pointer and pointer null indicator variables into a single entry for each pointer parameter
-				if (newInputs[i + 1] === '1') {
+				if (newInputs[i + 1] !== '0') {
 					newInputs[i + 1] = 'NULL';
 				} else {
 					newInputs[i + 1] = newInputs[i];
