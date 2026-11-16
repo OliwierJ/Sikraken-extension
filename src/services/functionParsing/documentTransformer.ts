@@ -149,7 +149,8 @@ export function parseFunction(functionContext: FunctionContext): ParsedFunction 
             : supportedType.nondeterministicName;
 
         if (match[4]) {
-            if (!match[5] && /\d+/.test(match[5].trim())) {
+            const length = Number(match[5]);
+            if (!Number.isSafeInteger(length) || length <= 0) {
                 throw new Error(`Unsupported parameter: ${parameter}`);
             }
             return {
@@ -159,7 +160,7 @@ export function parseFunction(functionContext: FunctionContext): ParsedFunction 
                 elementType: (match[1] + match[2]).trim(),
                 elementBaseType: supportedType.name,
                 elementNondeterministicName: nondeterministicName,
-                length: Number(match[5]),
+                length,
                 isConst: /\bconst\b/.test(match[1]),
             };
         }
@@ -274,4 +275,3 @@ function validCStringPath(value: string): string {
 }
 
 export { FunctionParameter };
-

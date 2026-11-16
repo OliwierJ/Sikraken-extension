@@ -224,4 +224,30 @@ suite("Unit: Prepared Function Call Test Suite", () => {
 
         assert.deepStrictEqual(actualCall, expectedCall);
     });
+
+    test("rejects too few array values", () => {
+        const parameters: FunctionParameter[] = [
+            arrayParam("int[3]", "arr", "int", 3),
+        ];
+
+        assert.throws(
+            () => prepareFunctionCall(parameters, [
+                {kind: "array", values: ["1", "2"]},
+            ]),
+            /Array parameter arr requires 3 values, but received 2/,
+        );
+    });
+
+    test("rejects too many array values", () => {
+        const parameters: FunctionParameter[] = [
+            arrayParam("int[3]", "arr", "int", 3),
+        ];
+
+        assert.throws(
+            () => prepareFunctionCall(parameters, [
+                {kind: "array", values: ["1", "2", "3", "4"]},
+            ]),
+            /Array parameter arr requires 3 values, but received 4/,
+        );
+    });
 });

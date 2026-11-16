@@ -209,6 +209,10 @@ suite('Unit: Document Transformer', () => {
 			assert.strictEqual(parsedFunction.parameters.length, 1);
 			const param = parsedFunction.parameters[0];
 			assert.strictEqual(param.kind, 'array');
+			if (param.kind === 'array') {
+				const expectedLength = Number(arrayType.match(/\[(\d+)\]/)?.[1]);
+				assert.strictEqual(param.length, expectedLength);
+			}
 		});
 	});
 

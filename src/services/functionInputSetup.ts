@@ -39,6 +39,13 @@ export function prepareFunctionCall(parameters: FunctionParameter[], inputs: Pre
         }
 
         if (parameter.kind === 'array' && input.kind === 'array') {
+            if (input.values.length !== parameter.length) {
+                throw new Error(
+                    `Array parameter ${parameter.name} requires ${parameter.length} values, ` +
+                    `but received ${input.values.length}.`,
+                );
+            }
+
             const arrayValues = input.values.map(value => {
                 return validateScalarLiteral(value, parameter.name, parameter.elementType);
             });
