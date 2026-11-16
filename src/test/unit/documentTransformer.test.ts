@@ -32,6 +32,18 @@ const unsupportedParameterTypes = [
     'void*',
 ] as const;
 
+const fixedLengthArrayTypes = [
+	'int val[10]',
+	'const float arr[5]',
+	'unsigned char matrix[3]',
+] as const;
+
+const variableLengthArrayTypes = [
+	'int values[]',
+	'int values[n]',
+	'int values[*]'
+] as const;
+
 suite('Unit: Document Transformer', () => {
 	test('parses a function return type, name, and parameters', () => {
 		const parsedFunction = parseFunction(createContext(
@@ -190,4 +202,22 @@ suite('Unit: Document Transformer', () => {
             );
         });
     });
+
+	fixedLengthArrayTypes.forEach((arrayType) => {
+		test(`parses fixed-length array parameter: ${arrayType}`, () => {
+			const parsedFunction = parseFunction(createContext(`int process(${arrayType}) {return 0;}`));
+			assert.strictEqual(parsedFunction.parameters.length, 1);
+			const param = parsedFunction.parameters[0];
+			assert.strictEqual(param.kind, 'array');
+		});
+	});
+
+	variableLengthArrayTypes.forEach((arrayType) => {
+		test(`rejects variable-length array parameter: ${arrayType}`, () => {
+			assert.throws(
+				() => parseFunction(createContext(`int process(${arrayType}) {return 0;}`))
+			);
+		});
+	});
+
 });

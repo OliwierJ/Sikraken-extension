@@ -1,7 +1,7 @@
 import { prepareFunctionCall } from "../../services/functionInputSetup";
 import * as assert from "assert";
 import { FunctionParameter } from "../../services/functionParsing/documentTransformer";
-import { pointerParam, scalarParam } from "./testHelpers";
+import { arrayParam, pointerParam, scalarParam } from "./testHelpers";
 import { PreparedParameterInput } from "../../services/testInputParser";
 
 /**
@@ -187,4 +187,41 @@ suite("Unit: Prepared Function Call Test Suite", () => {
         assert.deepStrictEqual(actualCall, expectedCall);
     });
 
+    test("handles fixed-length array parameters correctly", () => {
+        const parameters: FunctionParameter[] = [
+            arrayParam("int[3]", "arr", "int", 3),
+        ];
+
+        const inputValues: PreparedParameterInput[] = [{kind: "array", values: ["1", "2", "3"]}];
+        const expectedCall = {
+            setupCode: [
+                "int arr[3] = { 1, 2, 3 };",
+            ],
+            argumentsList: ["arr"],
+        };
+        const actualCall = prepareFunctionCall(parameters, inputValues);
+
+        assert.deepStrictEqual(actualCall, expectedCall);
+    });
+
+    test("handles scalar after an fixed-length array", () => {
+        const parameters: FunctionParameter[] = [
+            arrayParam("int[3]", "arr", "int", 3),
+            scalarParam("int", "a"),
+        ];
+
+        const inputValues: PreparedParameterInput[] = [
+            {kind: "array", values: ["1", "2", "3"]},
+            {kind: "scalar", value: "42"},
+        ];
+        const expectedCall = {
+            setupCode: [
+                "int arr[3] = { 1, 2, 3 };",
+            ],
+            argumentsList: ["arr", "42"],
+        };
+        const actualCall = prepareFunctionCall(parameters, inputValues);
+
+        assert.deepStrictEqual(actualCall, expectedCall);
+    });
 });

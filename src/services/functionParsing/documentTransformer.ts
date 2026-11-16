@@ -149,6 +149,9 @@ export function parseFunction(functionContext: FunctionContext): ParsedFunction 
             : supportedType.nondeterministicName;
 
         if (match[4]) {
+            if (!match[5] && /\d+/.test(match[5].trim())) {
+                throw new Error(`Unsupported parameter: ${parameter}`);
+            }
             return {
                 kind: 'array',
                 type: match[1] + match[2] + match[4],

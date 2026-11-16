@@ -7,7 +7,7 @@ import {
 	extractTestInputs,
 	parseTestInputsXML,
 } from '../../services/testInputParser';
-import { pointerParam, scalarParam } from './testHelpers';
+import { arrayParam, pointerParam, scalarParam } from './testHelpers';
 
 suite('Unit: Test Input Parsing', () => {
 	
@@ -39,8 +39,8 @@ suite('Unit: Test Input Parsing', () => {
 			assert.deepStrictEqual(
 				await extractTestInputs(['test_input-1.xml', 'test_input-2.xml'], outputPath),
 				[
-					{ fileName: 'test_input-1.xml', inputs: ['1'] },
-					{ fileName: 'test_input-2.xml', inputs: ['2', '3'] },
+					{ fileName: 'test_input-1.xml', inputs: [{ kind: 'scalar', value: '1' }] },
+					{ fileName: 'test_input-2.xml', inputs: [{ kind: 'scalar', value: '2' }, { kind: 'scalar', value: '3' }] },
 				],
 			);
 		} finally {
@@ -66,7 +66,7 @@ suite('Unit: Test Input Parsing', () => {
 			assert.deepStrictEqual(
 				await extractTestInputs(['test_input-1.xml'], outputPath, parameters),
 				[
-					{ fileName: 'test_input-1.xml', inputs: ['1'] },
+					{ fileName: 'test_input-1.xml', inputs: [{ kind: 'pointer', value: '1' }] },
 				],
 			);
 		} finally {
@@ -85,7 +85,7 @@ suite('Unit: Test Input Parsing', () => {
 			assert.deepStrictEqual(
 				await extractTestInputs(['test_input-1.xml'], outputPath, parameters),
 				[
-					{ fileName: 'test_input-1.xml', inputs: ['NULL'] },
+					{ fileName: 'test_input-1.xml', inputs: [{ kind: 'pointer', value: 'NULL' }] },
 				],
 			);
 		} finally {
@@ -105,7 +105,7 @@ suite('Unit: Test Input Parsing', () => {
 			assert.deepStrictEqual(
 				await extractTestInputs(['test_input-1.xml'], outputPath, parameters),
 				[
-					{ fileName: 'test_input-1.xml', inputs: ['1', '42'] },
+					{ fileName: 'test_input-1.xml', inputs: [{ kind: 'pointer', value: '1' }, { kind: 'pointer', value: '42' }] },
 				],
 			);
 		} finally {
@@ -125,7 +125,7 @@ suite('Unit: Test Input Parsing', () => {
 			assert.deepStrictEqual(
 				await extractTestInputs(['test_input-1.xml'], outputPath, parameters),
 				[
-					{ fileName: 'test_input-1.xml', inputs: ['404', '42'] },
+					{ fileName: 'test_input-1.xml', inputs: [{ kind: 'scalar', value: '404' }, { kind: 'pointer', value: '42' }] },
 				],
 			);
 		} finally {
@@ -133,7 +133,7 @@ suite('Unit: Test Input Parsing', () => {
 		}
 	});
 
-		test('supports pointer followed by scalar parameters', async () => {
+	test('supports pointer followed by scalar parameters', async () => {
 		const outputPath = await fs.mkdtemp(path.join(os.tmpdir(), 'sikraken-inputs-'));
 		try {
 			const parameters = [
@@ -145,7 +145,26 @@ suite('Unit: Test Input Parsing', () => {
 			assert.deepStrictEqual(
 				await extractTestInputs(['test_input-1.xml'], outputPath, parameters),
 				[
-					{ fileName: 'test_input-1.xml', inputs: ['404', '42'] },
+					{ fileName: 'test_input-1.xml', inputs: [{ kind: 'pointer', value: '404' }, { kind: 'scalar', value: '42' }] },
+				],
+			);
+		} finally {
+			await fs.rm(outputPath, { recursive: true, force: true });
+		}
+	});
+
+	test('supports fixed-length array parameters', async () => {
+		const outputPath = await fs.mkdtemp(path.join(os.tmpdir(), 'sikraken-inputs-'));
+		try {
+			const parameters = [
+				arrayParam('int[3]', 'arr', 'int', 3),
+			];
+			await fs.writeFile(path.join(outputPath, 'test_input-1.xml'), '<test><input>1</input><input>2</input><input>3</input></test>');
+			
+			assert.deepStrictEqual(
+				await extractTestInputs(['test_input-1.xml'], outputPath, parameters),
+				[
+					{ fileName: 'test_input-1.xml', inputs: [{ kind: 'array', values: ['1', '2', '3'] }] },
 				],
 			);
 		} finally {

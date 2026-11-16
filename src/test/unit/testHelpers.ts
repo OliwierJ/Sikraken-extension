@@ -9,3 +9,9 @@ export const pointerParam = (type: string, name: string, pointeeType: string): F
         kind: "pointer", name, type, pointeeBaseType: pointeeType, pointeeNondeterministicName: pointeeType, pointeeType, nullIndicatorName: `${name}_is_null`,
     };
 };
+
+export const arrayParam = (type: string, name: string, elementType: string, length: number): FunctionParameter => {
+    return {
+        kind: "array", name, type, elementBaseType: elementType, elementNondeterministicName: elementType, elementType, length, isConst: /\bconst\b/.test(type),
+    };
+};
