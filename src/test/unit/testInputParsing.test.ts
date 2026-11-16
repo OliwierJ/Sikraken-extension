@@ -171,4 +171,29 @@ suite('Unit: Test Input Parsing', () => {
 			await fs.rm(outputPath, { recursive: true, force: true });
 		}
 	});
+
+	test('formats printable character-array inputs as character literals', async () => {
+		const outputPath = await fs.mkdtemp(path.join(os.tmpdir(), 'sikraken-inputs-'));
+		try {
+			const parameters = [
+				arrayParam('char[4]', 'text', 'char', 4),
+			];
+			await fs.writeFile(
+				path.join(outputPath, 'test_input-1.xml'),
+				'<test><input>97</input><input>98</input><input>99</input></test>',
+			);
+
+			assert.deepStrictEqual(
+				await extractTestInputs(['test_input-1.xml'], outputPath, parameters),
+				[
+					{
+						fileName: 'test_input-1.xml',
+						inputs: [{ kind: 'array', values: ["'a'", "'b'", "'c'"] }],
+					},
+				],
+			);
+		} finally {
+			await fs.rm(outputPath, { recursive: true, force: true });
+		}
+	});
 });

@@ -161,6 +161,8 @@ export function parseFunction(functionContext: FunctionContext): ParsedFunction 
                 elementBaseType: supportedType.name,
                 elementNondeterministicName: nondeterministicName,
                 length,
+                inputLength: supportedType.name === 'char' ? length - 1 : length,
+                isString: supportedType.name === 'char',
                 isConst: /\bconst\b/.test(match[1]),
             };
         }

@@ -12,6 +12,8 @@ export type ArrayParameter = {
     elementBaseType: string;
     elementNondeterministicName: string;
     length: number;
+    inputLength: number;
+    isString: boolean;
     isConst: boolean;
 }
 

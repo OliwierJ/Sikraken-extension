@@ -12,6 +12,9 @@ export const pointerParam = (type: string, name: string, pointeeType: string): F
 
 export const arrayParam = (type: string, name: string, elementType: string, length: number): FunctionParameter => {
     return {
-        kind: "array", name, type, elementBaseType: elementType, elementNondeterministicName: elementType, elementType, length, isConst: /\bconst\b/.test(type),
+        kind: "array", name, type, elementBaseType: elementType, elementNondeterministicName: elementType, elementType, length,
+        inputLength: elementType === 'char' ? length - 1 : length,
+        isString: elementType === 'char',
+        isConst: /\bconst\b/.test(type),
     };
 };

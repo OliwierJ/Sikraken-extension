@@ -20,11 +20,15 @@ export const nondeterministicTemplate = (parameter: FunctionParameter) => {
 				`\t${parameter.elementType} ${parameter.name}[${parameter.length}];`,
 			];
 
-			for (let index = 0; index < parameter.length; index++) {
+			for (let index = 0; index < parameter.inputLength; index++) {
 				declarations.push(
 					`\t${parameter.name}[${index}] = ` +
 					`__VERIFIER_nondet_${parameter.elementNondeterministicName}();`,
 				);
+			}
+
+			if (parameter.isString) {
+				declarations.push(`\t${parameter.name}[${parameter.length - 1}] = '\0';`);
 			}
 
 			return declarations.join('\n');

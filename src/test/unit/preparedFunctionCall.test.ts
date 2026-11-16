@@ -204,6 +204,23 @@ suite("Unit: Prepared Function Call Test Suite", () => {
         assert.deepStrictEqual(actualCall, expectedCall);
     });
 
+    test("adds a null terminator to character arrays", () => {
+        const parameters: FunctionParameter[] = [
+            arrayParam("char[4]", "text", "char", 4),
+        ];
+
+        const actualCall = prepareFunctionCall(parameters, [
+            {kind: "array", values: ["'a'", "'b'", "'c'"]},
+        ]);
+
+        assert.deepStrictEqual(actualCall, {
+            setupCode: [
+                "char text[4] = { 'a', 'b', 'c', '\\0' };",
+            ],
+            argumentsList: ["text"],
+        });
+    });
+
     test("handles scalar after an fixed-length array", () => {
         const parameters: FunctionParameter[] = [
             arrayParam("int[3]", "arr", "int", 3),

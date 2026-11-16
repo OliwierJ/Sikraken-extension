@@ -18,7 +18,9 @@ export function prepareFunctionCall(parameters: FunctionParameter[], inputs: Pre
         const input = inputs[index];
 
         if (parameter.kind === 'scalar' && input.kind === 'scalar') {
-            const normalizedValue = validateScalarLiteral(input.value, parameter.name, parameter.type);
+            const normalizedValue = parameter.baseType === 'char'
+                ? validateCharacterLiteral(input.value, parameter.name)
+                : validateScalarLiteral(input.value, parameter.name, parameter.type);
             argumentsList.push(normalizedValue);
             return;
         } 
@@ -39,23 +41,29 @@ export function prepareFunctionCall(parameters: FunctionParameter[], inputs: Pre
         }
 
         if (parameter.kind === 'array' && input.kind === 'array') {
-            if (input.values.length !== parameter.length) {
+            if (input.values.length !== parameter.inputLength) {
                 throw new Error(
-                    `Array parameter ${parameter.name} requires ${parameter.length} values, ` +
+                    `Array parameter ${parameter.name} requires ${parameter.inputLength} values, ` +
                     `but received ${input.values.length}.`,
                 );
             }
 
             const arrayValues = input.values.map(value => {
-                return validateScalarLiteral(value, parameter.name, parameter.elementType);
+                return parameter.isString
+                    ? validateCharacterLiteral(value, parameter.name)
+                    : validateScalarLiteral(value, parameter.name, parameter.elementType);
             });
             
             setupCodeLines.push(
-                `${parameter.elementType} ${parameter.name}[${parameter.length}] = { ${arrayValues.join(', ')} };`,
+                parameter.isString
+                    ? `${parameter.elementType} ${parameter.name}[${parameter.length}] = { ${arrayValues.join(', ')}, '\\0' };`
+                    : `${parameter.elementType} ${parameter.name}[${parameter.length}] = { ${arrayValues.join(', ')} };`,
             );
             argumentsList.push(parameter.name);
             return;
         }
+
+
 
         throw new Error(`Mismatched parameter and input types for parameter ${parameter.name}.`);
     });
@@ -64,6 +72,14 @@ export function prepareFunctionCall(parameters: FunctionParameter[], inputs: Pre
         setupCode: setupCodeLines,
         argumentsList: argumentsList,
     };
+}
+
+function validateCharacterLiteral(value: string, parameterName: string): string {
+    if (/^'(?:[^'\\]|\\.)'$/.test(value.trim())) {
+        return value.trim();
+    }
+
+    return validateScalarLiteral(value, parameterName, 'char');
 }
 
 function validateScalarLiteral(value: string, parameterName: string, type: string): string {
