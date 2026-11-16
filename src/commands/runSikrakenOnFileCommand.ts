@@ -5,7 +5,7 @@ import { runSikraken } from '../services/sikrakenRunner';
 import { SikrakenSettings, loadSikrakenSettings } from '../settings';
 import { ensureSikrakenPrerequisites } from '../services/sikrakenPrerequisites';
 import { SIKRAKEN_PATH } from '../types';
-import { extractNondeterministicVariables, extractTestInputs } from '../services/testInputParser';
+import { extractNondeterministicVariables, extractTestInputs, TestInput } from '../services/testInputParser';
 import { createDebugRun } from '../services/debugArtifacts';
 import { TrackedOutputChannel } from '../services/TrackedOutputChannel';
 
@@ -97,7 +97,7 @@ export async function runSikrakenOnFile(context: vscode.ExtensionContext): Promi
 			const variables = extractNondeterministicVariables(sourceCode);
 			const outputChannel = new TrackedOutputChannel('Sikraken Test Inputs');
 			const testInputFiles = (await fs.readdir(outputPath)).filter((entry) => entry.startsWith('test_input-') && entry.endsWith('.xml')).sort();
-			let testInputs;
+			let testInputs: any;
 
 			try {
 				testInputs = await extractTestInputs(testInputFiles, outputPath, );
@@ -112,7 +112,7 @@ export async function runSikrakenOnFile(context: vscode.ExtensionContext): Promi
 
 				for (let index = 0; index < testInput.inputs.length; index++) {
 					const variable = variables[index] ?? `input${index + 1}`;
-					outputChannel.appendLine(`${variable} = ${testInput.inputs[index]}`);
+					outputChannel.appendLine(`${variable} = ${testInput.inputs[index].value}`);
 				}
 			}
 			outputChannel.show(true);

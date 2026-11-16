@@ -1,7 +1,19 @@
 export type FunctionParameter = 
 | ScalarParameter 
-| PointerParameter;
+| PointerParameter
+| ArrayParameter;
 
+
+export type ArrayParameter = {
+    kind: 'array';
+    type: string;
+    name: string;
+    elementType: string;
+    elementBaseType: string;
+    elementNondeterministicName: string;
+    length: number;
+    isConst: boolean;
+}
 
 export type PointerParameter = {
     kind: 'pointer';

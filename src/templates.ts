@@ -15,13 +15,29 @@ export const nondeterministicTemplate = (parameter: FunctionParameter) => {
 			return `\t${parameter.pointeeType} ${parameter.name}_SIK_storage = __VERIFIER_nondet_${parameter.pointeeNondeterministicName}();` +
 			`\n\tint ${parameter.nullIndicatorName} = __VERIFIER_nondet_int();` +
 			`\n\t${parameter.type.trim()} ${parameter.name} = ${parameter.nullIndicatorName} ? NULL : &${parameter.name}_SIK_storage;`;
-		
+		case 'array': {
+			const declarations = [
+				`\t${parameter.elementType} ${parameter.name}[${parameter.length}];`,
+			];
+
+			for (let index = 0; index < parameter.length; index++) {
+				declarations.push(
+					`\t${parameter.name}[${index}] = ` +
+					`__VERIFIER_nondet_${parameter.elementNondeterministicName}();`,
+				);
+			}
+
+			return declarations.join('\n');
+		}
+		default:
+			throw new Error(`Unsupported parameter kind: ${(parameter as any).kind}`);
 	}
 };
 
 
 export const unityTemplate = (testCases: TestCase[], include: string, generateOutputs: boolean) => 
 `#include <stddef.h>
+#include <math.h>
 #include "unity.h"
 ${include ? `#include "${include}"` : ''}\n
 void setUp(void) {}

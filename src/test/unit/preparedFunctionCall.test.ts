@@ -2,6 +2,7 @@ import { prepareFunctionCall } from "../../services/functionInputSetup";
 import * as assert from "assert";
 import { FunctionParameter } from "../../services/functionParsing/documentTransformer";
 import { pointerParam, scalarParam } from "./testHelpers";
+import { PreparedParameterInput } from "../../services/testInputParser";
 
 /**
  * The file contains unit tests for the prepareFunctionCall function.
@@ -18,12 +19,12 @@ suite("Unit: Prepared Function Call Test Suite", () => {
             scalarParam("double", "c")
         ];
 
-        const inputValues = ["42", "3.14", "2.71828"];
+        const inputValues = [{kind: "scalar", value: "42"}, {kind: "scalar", value: "3.14"}, {kind: "scalar", value: "2.71828"}];
         const expectedCall = {
             setupCode: [],
             argumentsList: ["42", "3.14", "2.71828"],
         };
-        const actualCall = prepareFunctionCall(parameters, inputValues);
+        const actualCall = prepareFunctionCall(parameters, inputValues as PreparedParameterInput[]);
 
         assert.deepStrictEqual(actualCall, expectedCall);
     });
@@ -33,7 +34,7 @@ suite("Unit: Prepared Function Call Test Suite", () => {
             pointerParam("int*", "ptr", "int"),
         ];
 
-        const inputValues = ["42"];
+        const inputValues: PreparedParameterInput[] = [{kind: "pointer", value: "42"}];
         const expectedCall = {
             setupCode: [
                 "int ptr_SIK_storage = 42;",
@@ -51,7 +52,7 @@ suite("Unit: Prepared Function Call Test Suite", () => {
             pointerParam("int*", "ptr", "int"),
         ];
 
-        const inputValues = ["NULL"];
+        const inputValues: PreparedParameterInput[] = [{kind: "pointer", value: "NULL"}];
         const expectedCall = {
             setupCode: [
                 "int* ptr = NULL;",
@@ -69,7 +70,7 @@ suite("Unit: Prepared Function Call Test Suite", () => {
             pointerParam("float*", "ptr", "float"),
         ];
 
-        const inputValues = ["42", "3.14"];
+        const inputValues: PreparedParameterInput[] = [{kind: "scalar", value: "42"}, {kind: "pointer", value: "3.14"}];
         const expectedCall = {
             setupCode: [
                 "float ptr_SIK_storage = 3.14;",
@@ -88,7 +89,7 @@ suite("Unit: Prepared Function Call Test Suite", () => {
             scalarParam("int", "a"),
         ];
 
-        const inputValues = ["2.71828", "42"];
+        const inputValues: PreparedParameterInput[] = [{kind: "pointer", value: "2.71828"}, {kind: "scalar", value: "42"}];
         const expectedCall = {
             setupCode: [
                 "double ptr_SIK_storage = 2.71828;",
@@ -107,7 +108,7 @@ suite("Unit: Prepared Function Call Test Suite", () => {
             pointerParam("float*", "ptr2", "float"),
         ];
 
-        const inputValues = ["42", "3.14"];
+        const inputValues: PreparedParameterInput[] = [{kind: "pointer", value: "42"}, {kind: "pointer", value: "3.14"}];
         const expectedCall = {
             setupCode: [
                 "int ptr1_SIK_storage = 42;",
@@ -127,7 +128,7 @@ suite("Unit: Prepared Function Call Test Suite", () => {
             scalarParam("int", "a"),
         ];
 
-        const inputValues = ["not_a_number"];
+        const inputValues: PreparedParameterInput[] = [{kind: "scalar", value: "not_a_number"}];
         assert.throws(() => {
             prepareFunctionCall(parameters, inputValues);
         });
@@ -138,7 +139,7 @@ suite("Unit: Prepared Function Call Test Suite", () => {
             pointerParam("int*", "ptr", "int"),
         ];
 
-        const inputValues = ["not_a_number"];
+        const inputValues: PreparedParameterInput[] = [{kind: "pointer", value: "not_a_number"}];
         assert.throws(() => {
             prepareFunctionCall(parameters, inputValues);
         });
@@ -150,11 +151,40 @@ suite("Unit: Prepared Function Call Test Suite", () => {
             pointerParam("float*", "ptr", "float"),
         ];
 
-        const inputValues = ["42"]; // Missing one input for the pointer parameter
+        const inputValues: PreparedParameterInput[] = [{kind: "scalar", value: "42"}]; // Missing one input for the pointer parameter
         assert.throws(() => {
             prepareFunctionCall(parameters, inputValues);
         });
     });
 
+    test("handles nan sikraken output for float parameters correctly", () => {
+        const parameters: FunctionParameter[] = [
+            scalarParam("float", "a"),
+        ];
+
+        const inputValues: PreparedParameterInput[] = [{kind: "scalar", value: "nan"}];
+        const expectedCall = {
+            setupCode: [],
+            argumentsList: ["NAN"],
+        };
+        const actualCall = prepareFunctionCall(parameters, inputValues);
+
+        assert.deepStrictEqual(actualCall, expectedCall);
+    });
+
+    test("handles infinity sikraken output for double parameters correctly", () => {
+        const parameters: FunctionParameter[] = [
+            scalarParam("double", "a"),
+        ];
+
+        const inputValues: PreparedParameterInput[] = [{kind: "scalar", value: "inf"}];
+        const expectedCall = {
+            setupCode: [],
+            argumentsList: ["INFINITY"],
+        };
+        const actualCall = prepareFunctionCall(parameters, inputValues);
+
+        assert.deepStrictEqual(actualCall, expectedCall);
+    });
 
 });

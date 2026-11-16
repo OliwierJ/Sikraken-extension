@@ -4,6 +4,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import type { FunctionParameter } from './functionParsing/documentTransformer';
 import { PreparedFunctionCall, prepareFunctionCall } from './functionInputSetup';
+import { PreparedParameterInput } from './testInputParser';
 
 const execFileAsync = promisify(execFile);
 const RESULT_PREFIX = 'SIKRAKEN_RESULT:';
@@ -13,7 +14,7 @@ export type EvaluateInputOptions = {
 	functionName: string;
 	returnType: string;
 	parameters: FunctionParameter[];
-	inputs: string[];
+	inputs: PreparedParameterInput[];
 	workingDirectory: string;
 };
 
@@ -85,6 +86,7 @@ function createEvaluatorSource(sourcePath: string, functionName: string, returnT
 	return [
 		'#include <stdio.h>',
 		'#define main sikraken_original_main',
+		'#include <math.h>',
 		'#include <stddef.h>',
 		`#include ${includePath}`,
 		'#undef main',

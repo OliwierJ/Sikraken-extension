@@ -1,11 +1,12 @@
 import { FunctionParameter } from "./functionParsing/types";
+import { PreparedParameterInput } from "./testInputParser";
 
 export type PreparedFunctionCall = {
     setupCode: string[];
     argumentsList: string[];
 }
 
-export function prepareFunctionCall(parameters: FunctionParameter[], inputs: string[]): PreparedFunctionCall {
+export function prepareFunctionCall(parameters: FunctionParameter[], inputs: PreparedParameterInput[]): PreparedFunctionCall {
     if (inputs.length !== parameters.length) {
         throw new Error(`Number of inputs (${inputs.length}) does not match number of parameters (${parameters.length}).`);
     }
@@ -16,25 +17,40 @@ export function prepareFunctionCall(parameters: FunctionParameter[], inputs: str
     parameters.forEach((parameter, index) => {
         const input = inputs[index];
 
-        if (parameter.kind === 'scalar') {
-            validateScalarLiteral(input, parameter.name);
-            argumentsList.push(input);
+        if (parameter.kind === 'scalar' && input.kind === 'scalar') {
+            const normalizedValue = validateScalarLiteral(input.value, parameter.name, parameter.type);
+            argumentsList.push(normalizedValue);
             return;
-        }
+        } 
 
-        if (parameter.kind === 'pointer') {
-            if (input === 'NULL') {
+        if (parameter.kind === 'pointer' && input.kind === 'pointer') {
+            if (input.value === 'NULL') {
                 setupCodeLines.push(`${parameter.type.trim()} ${parameter.name} = NULL;`);
             } else {
-                validateScalarLiteral(input, parameter.name);
+                const normalizedValue = validateScalarLiteral(input.value, parameter.name, parameter.pointeeType);
                 setupCodeLines.push(
-                    `${parameter.pointeeType} ${parameter.name}_SIK_storage = ${input};`,
+                    `${parameter.pointeeType} ${parameter.name}_SIK_storage = ${normalizedValue};`,
                     `${parameter.type.trim()} ${parameter.name} = &${parameter.name}_SIK_storage;`,
                 );
             }
 
             argumentsList.push(parameter.name);
+            return;
         }
+
+        if (parameter.kind === 'array' && input.kind === 'array') {
+            const arrayValues = input.values.map(value => {
+                return validateScalarLiteral(value, parameter.name, parameter.elementType);
+            });
+            
+            setupCodeLines.push(
+                `${parameter.elementType} ${parameter.name}[${parameter.length}] = { ${arrayValues.join(', ')} };`,
+            );
+            argumentsList.push(parameter.name);
+            return;
+        }
+
+        throw new Error(`Mismatched parameter and input types for parameter ${parameter.name}.`);
     });
 
     return {
@@ -43,10 +59,31 @@ export function prepareFunctionCall(parameters: FunctionParameter[], inputs: str
     };
 }
 
-function validateScalarLiteral(value: string, parameterName: string): void {
-	const literalPattern =
+function validateScalarLiteral(value: string, parameterName: string, type: string): string {
+	
+    const normalized = value.trim().toLowerCase();
+    const isFloatingPoint = /\b(float|double)\b/.test(type);
+
+    if (isFloatingPoint) {
+        if (normalized === 'nan' || normalized === '+nan' || normalized === '-nan') {
+            return 'NAN';
+        }
+
+        if (normalized === 'inf' || normalized === '+inf' ||
+            normalized === 'infinity' || normalized === '+infinity') {
+            return 'INFINITY';
+        }
+
+        if (normalized === '-inf' || normalized === '-infinity') {
+            return '-INFINITY';
+        }
+    }
+
+    const literalPattern =
 		/^[+-]?(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?|0[xX][0-9a-fA-F]+)(?:[uUlLfF]*)$/;
 	if (!literalPattern.test(value.trim())) {
 		throw new Error(`Unsupported generated value for parameter ${parameterName}: ${value}`);
 	}
+
+    return value.trim();
 }

@@ -1,6 +1,6 @@
 import * as fs from 'node:fs/promises';
 import * as vscode from 'vscode';
-import { TestInput } from './testInputParser';
+import { PreparedParameterInput, TestInput } from './testInputParser';
 import { TestFunction } from '../types';
 import { unityAssertionTemplate } from '../templates';
 import { evaluateFunctionInput } from './inputEvaluator';
@@ -39,7 +39,12 @@ export async function generateTestCases(params: GenerateTestCasesParams): Promis
 
 		for (let index = 0; index < testInput.inputs.length; index++) {
 			const variable = params.harness.parameters[index]?.name ?? `input${index + 1}`;
-			outputChannel.appendLine(`${variable} = ${testInput.inputs[index]}`);
+			const input = testInput.inputs[index];
+			if (input.kind === 'array') {
+				outputChannel.appendLine(`${variable} = ${input.values.join(', ')}`);
+			} else {
+				outputChannel.appendLine(`${variable} = ${input.value}`);
+			}
 		}
 
 		const testCaseName = `test_case_${currentIndex}`;
@@ -56,7 +61,7 @@ export async function generateTestCases(params: GenerateTestCasesParams): Promis
 					functionName: params.harness.originalName,
 					returnType: params.parsedFunction.returnType,
 					parameters: params.harness.parameters,
-					inputs: testInput.inputs,
+					inputs: testInput.inputs as PreparedParameterInput[],
 					workingDirectory: params.tempDirectory,
 				});
 			} catch (error) {
@@ -64,7 +69,7 @@ export async function generateTestCases(params: GenerateTestCasesParams): Promis
 				throw new Error(`Could not evaluate ${testInput.fileName}: ${message}`);
 			}
 		}
-		const preparedFunctionCall = prepareFunctionCall(params.harness.parameters, testInput.inputs);
+		const preparedFunctionCall = prepareFunctionCall(params.harness.parameters, testInput.inputs as PreparedParameterInput[]);
 
 		// If not generating outputs, put a placeholder in the test case body
 		const testCaseBody = unityAssertionTemplate(

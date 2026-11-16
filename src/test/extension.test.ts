@@ -62,7 +62,7 @@ suite('Extension Test Suite', () => {
 					baseType: 'int',
 					nondeterministicName: 'int',
 				}],
-				inputs: ['3'],
+				inputs: [{kind: 'scalar', value: '3'}],
 				workingDirectory: temporaryDirectory,
 			});
 
@@ -99,7 +99,7 @@ suite('Extension Test Suite', () => {
 					baseType: 'int',
 					nondeterministicName: 'int',
 				}],
-				inputs: ['3'],
+				inputs: [{kind: 'scalar', value: '3'}],
 				workingDirectory: temporaryDirectory,
 			});
 

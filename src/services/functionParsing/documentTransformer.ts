@@ -33,7 +33,9 @@ const supportedTypeRegex = new RegExp(`^(${supportedTypePattern})$`);
 
 const pointerTypePattern = `((?:\\s+\\*\\s*)|(?:\\*\\s+)|\\s+)`;
 
-const supportedTypeWithNameRegex = new RegExp(`^(${supportedTypePattern})${pointerTypePattern}([A-Za-z_]\\w*)$`);
+const definedLengthArrayPattern = `(?:(\\s*\\[\\s*(\\d+)\\s*\\]\\s*)?)`;
+
+const supportedTypeWithNameRegex = new RegExp(`^(${supportedTypePattern})${pointerTypePattern}([A-Za-z_]\\w*)${definedLengthArrayPattern}$`);
 
 const parseSupportedType = (type: string): SupportedCType | undefined => {
     const normalizedType = type.trim().replace(/\s+/g, ' ');
@@ -146,6 +148,19 @@ export function parseFunction(functionContext: FunctionContext): ParsedFunction 
             ? `u${supportedType.nondeterministicName}`
             : supportedType.nondeterministicName;
 
+        if (match[4]) {
+            return {
+                kind: 'array',
+                type: match[1] + match[2] + match[4],
+                name: match[3],
+                elementType: (match[1] + match[2]).trim(),
+                elementBaseType: supportedType.name,
+                elementNondeterministicName: nondeterministicName,
+                length: Number(match[5]),
+                isConst: /\bconst\b/.test(match[1]),
+            };
+        }
+
         if (match[2].includes('*')) {
             return {
                 kind: 'pointer',
@@ -195,11 +210,20 @@ export function createIncludeHarness(context: FunctionContext, parsedFunction: P
                 parameter.pointeeNondeterministicName,
             ] as const;
         }
+        if (parameter.kind === 'scalar') {
 
-        return [
-            parameter.baseType,
-            parameter.nondeterministicName,
-        ] as const;
+            return [
+                parameter.baseType,
+                parameter.nondeterministicName,
+            ] as const;
+        }
+        if (parameter.kind === 'array') {
+            return [
+                parameter.elementBaseType,
+                parameter.elementNondeterministicName,
+            ] as const;
+        }
+        throw new Error(`Unsupported parameter kind: ${(parameter as any).kind}`);
     });
 
     if (parsedFunction.parameters.some(parameter => parameter.kind === 'pointer')) {
