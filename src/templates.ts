@@ -28,7 +28,7 @@ export const nondeterministicTemplate = (parameter: FunctionParameter) => {
 			}
 
 			if (parameter.isString) {
-				declarations.push(`\t${parameter.name}[${parameter.length - 1}] = '\0';`);
+				declarations.push(`\t${parameter.name}[${parameter.length - 1}] = '\\0';`);
 			}
 
 			return declarations.join('\n');
