@@ -1,3 +1,5 @@
+import { DocumentSymbol } from "vscode";
+
 export type FunctionParameter = 
 | ScalarParameter 
 | PointerParameter
@@ -34,6 +36,12 @@ export type ScalarParameter = {
     baseType: string;
     nondeterministicName: string;
     signedness?: 'signed' | 'unsigned';
+}
+
+export type FunctionSymbols = {
+    selectedFunction: DocumentSymbol;
+    enumeratedSymbols?: DocumentSymbol[];
+    structSymbols?: DocumentSymbol[];
 }
 
 export type TransformedFunction = {

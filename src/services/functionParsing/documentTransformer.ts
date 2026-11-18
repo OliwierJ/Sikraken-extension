@@ -1,7 +1,7 @@
 import { FunctionContext } from "../functionContext";
 import { nondeterministicTemplate } from "../../templates";
 import * as vscode from 'vscode';
-import { ParsedFunction, FunctionParameter, GeneratedHarness, ScalarParameter } from "./types";
+import { ParsedFunction, FunctionParameter, GeneratedHarness, ScalarParameter, FunctionSymbols } from "./types";
 
 type SupportedCType = {
     name: string;
@@ -60,7 +60,7 @@ function getSupportedType(type: string, description: string): SupportedCType {
     return supportedType;
 }
 
-export async function parseFunctionSymbols(activeEditor: vscode.TextEditor) {
+export async function parseFunctionSymbols(activeEditor: vscode.TextEditor): Promise<FunctionSymbols | undefined> {
     const selectedFileURI = activeEditor.document.uri;
 	const position = activeEditor.selection.active;
     
@@ -95,7 +95,7 @@ export async function parseFunctionSymbols(activeEditor: vscode.TextEditor) {
 		console.error('Failed to fetch symbols:', error);
 	}
 
-	return functionSymbol;
+	return { selectedFunction: functionSymbol } as FunctionSymbols;
 }
 
 // Returns the function return type, name, and parameters from the function context

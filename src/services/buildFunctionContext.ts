@@ -1,9 +1,10 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { FunctionContext } from './functionContext';
+import { FunctionSymbols } from './functionParsing/types';
 
 // This function builds a FunctionContext object based on the currently active editor and the selected function symbol.
-export async function buildFunctionContext(editor: vscode.TextEditor, symbol: vscode.DocumentSymbol): Promise<FunctionContext> {
+export async function buildFunctionContext(editor: vscode.TextEditor, symbols: FunctionSymbols): Promise<FunctionContext> {
     const source = editor.document.getText();
 
     return {
@@ -14,9 +15,9 @@ export async function buildFunctionContext(editor: vscode.TextEditor, symbol: vs
         },
 
         selectedFunction: {
-            name: symbol.name,
-            source: editor.document.getText(symbol.range),
-            range: symbol.range,
+            name: symbols.selectedFunction.name,
+            source: editor.document.getText(symbols.selectedFunction.range),
+            range: symbols.selectedFunction.range,
             parameters: [],
         },
 
