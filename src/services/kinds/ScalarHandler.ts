@@ -7,18 +7,18 @@ type ScalarValue = Extract<ParameterValue, { kind: 'scalar' }>;
 
 export const scalarHandler: KindHandler<ScalarParameter, ScalarValue> = {
 
-	slots: (p) => [{ nondetName: p.nondeterministicName, protoType: p.baseType, target: p.name, declType: p.type }],
+	nondetInputs: (p) => [{ nondetName: p.nondeterministicName, protoType: p.baseType, target: p.name, declType: p.type }],
 
-	prelude: () => [],
+	declareStorage: () => [],
 
-	epilogue: () => [],
+	buildArgument: () => [],
 
-	decode: (p, [raw]) => ({
+	valueFromTokens: (p, [raw]) => ({
 		kind: 'scalar',
 		value: p.baseType === 'char' ? formatCharacterInput(raw) : raw,
 	}),
 
-	replay: (p, v) => ({
+	testArgument: (p, v) => ({
 		setupCode: [],
 		argument: p.baseType === 'char' ? validateCharacterLiteral(v.value, p.name) : validateScalarLiteral(v.value, p.name, p.type),
 	}),

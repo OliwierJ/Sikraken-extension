@@ -20,7 +20,7 @@ const setupCode: string[] = [];
         if (parameter.kind !== input.kind) {
             throw new Error(`Mismatched parameter and input types for parameter ${parameter.name}.`);
         }
-        const call = handlerFor(parameter).replay(parameter, input);
+        const call = handlerFor(parameter).testArgument(parameter, input);
         setupCode.push(...call.setupCode);
         argumentsList.push(call.argument);
     });

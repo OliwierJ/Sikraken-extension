@@ -9,9 +9,9 @@ suite('Refactor Kind Handlers', () => {
 	const generic = (p: FunctionParameter) => {
 		const h = handlerFor(p);
 		return [
-			...h.prelude(p),
-			...h.slots(p).map((s) => `\t${s.declType ? s.declType + ' ' : ''}${s.target} = __VERIFIER_nondet_${s.nondetName}();`),
-			...h.epilogue(p),
+			...h.declareStorage(p),
+			...h.nondetInputs(p).map((s) => `\t${s.declType ? s.declType + ' ' : ''}${s.target} = __VERIFIER_nondet_${s.nondetName}();`),
+			...h.buildArgument(p),
 		].join('\n');
 	};
 

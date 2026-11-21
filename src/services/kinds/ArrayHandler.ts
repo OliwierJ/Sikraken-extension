@@ -5,23 +5,23 @@ import { KindHandler, ParameterValue } from './types';
 type ArrayValue = Extract<ParameterValue, { kind: 'array' }>;
 
 export const arrayHandler: KindHandler<ArrayParameter, ArrayValue> = {
-	slots: (p) =>
+	nondetInputs: (p) =>
 		Array.from({ length: p.inputLength }, (_, i) => ({
 			nondetName: p.elementNondeterministicName,
 			protoType: p.elementBaseType,
 			target: `${p.name}[${i}]`,
 		})),
 
-	prelude: (p) => [`\t${p.elementType} ${p.name}[${p.length}];`],
+	declareStorage: (p) => [`\t${p.elementType} ${p.name}[${p.length}];`],
 
-	epilogue: (p) => (p.isString ? [`\t${p.name}[${p.length - 1}] = '\\0';`] : []),
+	buildArgument: (p) => (p.isString ? [`\t${p.name}[${p.length - 1}] = '\\0';`] : []),
 
-	decode: (p, raw) => ({
+	valueFromTokens: (p, raw) => ({
 		kind: 'array',
 		values: p.isString ? raw.map(formatCharacterInput) : raw,
 	}),
 
-	replay: (p, v) => {
+	testArgument: (p, v) => {
 		if (v.values.length !== p.inputLength) {
 			throw new Error(`Array parameter ${p.name} requires ${p.inputLength} values, ` + `but received ${v.values.length}.`);
 		}

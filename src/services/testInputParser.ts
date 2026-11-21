@@ -52,13 +52,13 @@ export async function extractTestInputs(files: string[], outputPath: string, par
 		let cursor = 0;
 		const decoded = parameters.map((parameter) => {
 			const handler = handlerFor(parameter);
-			const count = handler.slots(parameter).length;
+			const count = handler.nondetInputs(parameter).length;
 			const chunk = sikrakenInputs.slice(cursor, cursor + count);
 			if (chunk.length !== count) {
 				throw new Error(`Sikraken returned too few inputs for parameter '${parameter.name}' in '${testInputFile}'.`);
 			}
 			cursor += count;
-			return handler.decode(parameter, chunk);
+			return handler.valueFromTokens(parameter, chunk);
 		});
 
 		if (cursor !== sikrakenInputs.length) {
