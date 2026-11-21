@@ -1,8 +1,7 @@
 import { FunctionContext } from "../functionContext";
-import { nondeterministicTemplate } from "../../templates";
 import * as vscode from 'vscode';
-import { ParsedFunction, FunctionParameter, GeneratedHarness, ScalarParameter, FunctionSymbols } from "./types";
-import { handlerFor, harnessLines, harnessPrototypes } from "../kinds";
+import { ParsedFunction, FunctionParameter, GeneratedHarness, FunctionSymbols } from "./types";
+import { harnessLines, harnessPrototypes } from "../kinds";
 
 type SupportedCType = {
     name: string;
@@ -150,6 +149,9 @@ export function parseFunction(functionContext: FunctionContext): ParsedFunction 
             : supportedType.nondeterministicName;
 
         if (match[4]) {
+            if (match[2].includes('*'))  {
+                throw new Error(`Unsupported parameter: ${parameter}`);
+            }
             const length = Number(match[5]);
             if (!Number.isSafeInteger(length) || length <= 0) {
                 throw new Error(`Unsupported parameter: ${parameter}`);

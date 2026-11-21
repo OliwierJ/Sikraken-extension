@@ -1,43 +1,8 @@
-import { FunctionParameter } from "./services/functionParsing/types";
-
 
 export type TestCase = {
     name: string;
     body: string;
 };
-
-export const nondeterministicTemplate = (parameter: FunctionParameter) => {
-	switch (parameter.kind) {
-		case 'scalar':
-			return `\t${parameter.type} ${parameter.name} = ` +
-			`__VERIFIER_nondet_${parameter.nondeterministicName}();`;
-		case 'pointer':
-			return `\t${parameter.pointeeType} ${parameter.name}_SIK_storage = __VERIFIER_nondet_${parameter.pointeeNondeterministicName}();` +
-			`\n\tint ${parameter.nullIndicatorName} = __VERIFIER_nondet_int();` +
-			`\n\t${parameter.type.trim()} ${parameter.name} = ${parameter.nullIndicatorName} ? NULL : &${parameter.name}_SIK_storage;`;
-		case 'array': {
-			const declarations = [
-				`\t${parameter.elementType} ${parameter.name}[${parameter.length}];`,
-			];
-
-			for (let index = 0; index < parameter.inputLength; index++) {
-				declarations.push(
-					`\t${parameter.name}[${index}] = ` +
-					`__VERIFIER_nondet_${parameter.elementNondeterministicName}();`,
-				);
-			}
-
-			if (parameter.isString) {
-				declarations.push(`\t${parameter.name}[${parameter.length - 1}] = '\\0';`);
-			}
-
-			return declarations.join('\n');
-		}
-		default:
-			throw new Error(`Unsupported parameter kind: ${(parameter as any).kind}`);
-	}
-};
-
 
 export const unityTemplate = (testCases: TestCase[], include: string, generateOutputs: boolean) => 
 `#include <stddef.h>
