@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'node:path';
 import { FunctionParameter } from './functionParsing/documentTransformer';
+import { formatCharacterInput } from './kinds/ScalarHandler';
 
 const inputElementPattern = /<input>\s*([\s\S]*?)\s*<\/input>/g;
 const nondeterministicVariablePattern = /\b([A-Za-z_]\w*)\s*=\s*__VERIFIER_nondet_\w+\s*\(\s*\)\s*;/g;
@@ -100,16 +101,4 @@ export async function extractTestInputs(files: string[], outputPath: string, par
 	return inputs;
 }
 
-function formatCharacterInput(value: string): string {
-	const numericValue = Number(value);
-	if (!Number.isInteger(numericValue) || numericValue < 32 || numericValue > 126) {
-		return value;
-	}
 
-	const character = String.fromCharCode(numericValue);
-	if (character === "'" || character === '\\') {
-		return `'\\${character}'`;
-	}
-
-	return `'${character}'`;
-}

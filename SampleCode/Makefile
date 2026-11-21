@@ -1,3 +1,3 @@
 
 clean:
-	rm -rf *test_suite.c
+	find -type f -name *test_suite.c -delete
