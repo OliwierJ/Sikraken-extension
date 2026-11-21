@@ -2,6 +2,7 @@ import { FunctionContext } from "../functionContext";
 import { nondeterministicTemplate } from "../../templates";
 import * as vscode from 'vscode';
 import { ParsedFunction, FunctionParameter, GeneratedHarness, ScalarParameter, FunctionSymbols } from "./types";
+import { handlerFor, harnessLines, harnessPrototypes } from "../kinds";
 
 type SupportedCType = {
     name: string;
@@ -204,43 +205,8 @@ export function createIncludeHarness(context: FunctionContext, parsedFunction: P
 	const mainRename = hasMain ? '#define main sikraken_original_main\n' : '';
 	const mainRestore = hasMain ? '\n#undef main\n' : '';
 
-	// Generate nondeterministic variable declarations for each parameter
-	const nondeterministicDeclarations = parsedFunction.parameters
-        .map((parameter) => nondeterministicTemplate(parameter)).join('\n');
-    
-	// Generate nondeterministic function prototypes for each unique parameter type
-	const prototypeEntries = parsedFunction.parameters.map((parameter) => {
-        if (parameter.kind === 'pointer') {
-            return [
-                parameter.pointeeBaseType,
-                parameter.pointeeNondeterministicName,
-            ] as const;
-        }
-        if (parameter.kind === 'scalar') {
-
-            return [
-                parameter.baseType,
-                parameter.nondeterministicName,
-            ] as const;
-        }
-        if (parameter.kind === 'array') {
-            return [
-                parameter.elementBaseType,
-                parameter.elementNondeterministicName,
-            ] as const;
-        }
-        throw new Error(`Unsupported parameter kind: ${(parameter as any).kind}`);
-    });
-
-    if (parsedFunction.parameters.some(parameter => parameter.kind === 'pointer')) {
-        prototypeEntries.push(['int', 'int']);
-    }
-
-    const nondeterministicPrototypes = [...new Map(prototypeEntries)]
-        .map(([type, nondeterministicName]) =>
-            `extern ${type} __VERIFIER_nondet_${nondeterministicName}(void);`,
-        )
-        .join('\n');
+	const nondeterministicDeclarations = parsedFunction.parameters.flatMap(harnessLines).join('\n');
+    const nondeterministicPrototypes = harnessPrototypes(parsedFunction.parameters).join('\n');
 
 	const argumentsList = parsedFunction.parameters.map((parameter) => parameter.name).join(', ');
 

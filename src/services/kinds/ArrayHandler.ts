@@ -1,5 +1,5 @@
 import { ArrayParameter } from '../functionParsing/types';
-import { formatCharacterInput, validateCharacterLiteral, validateScalarLiteral } from './ScalarHandler';
+import { formatCharacterInput, validateCharacterLiteral, validateScalarLiteral } from './literals';
 import { KindHandler, ParameterValue } from './types';
 
 type ArrayValue = Extract<ParameterValue, { kind: 'array' }>;

@@ -1,5 +1,5 @@
 import { PointerParameter } from "../functionParsing/types";
-import { validateScalarLiteral } from "./ScalarHandler";
+import { validateScalarLiteral } from "./literals";
 import { KindHandler, ParameterValue } from "./types";
 
 type PointerValue = Extract<ParameterValue, { kind: 'pointer' }>;
