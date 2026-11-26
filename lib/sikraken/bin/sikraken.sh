@@ -18,12 +18,16 @@ CLI_ERROR=30
 # --- Defaults ---
 debug_mode="debug"
 data_model="-m32"
+data_model_given=0                # 24/11/26 real-code mode (--function) has -m64 as its default, Test-Comp mode -m32
 stack_size_value="$((3 * 953))M" # default 3 GB converted to MiB
 algo=""
 generate_cfg_png_flag=0
 coverage="branch"               # default when --coverage is absent
 reach_function="reach_error"    # default when --reach is absent
 reach_given=0
+function_name=""                  # 24/11/26 --function: real-code mode, V3 of docs/v3_function_inputs.md
+ignore_initialisers_flag=0        # 24/11/26 --ignore-initialisers: real-code mode only (V3 step 2)
+stub_names=()                     # 24/11/26 --stub NAME, repeatable: real-code mode only (V3 step 3)
 rel_path_c_file=""
 output_dir="$SIKRAKEN_INSTALL_DIR/sikraken_output"   # default when --output-dir is absent
 RD='\033[31m'
@@ -43,10 +47,19 @@ show_help() {
     echo "  --ol=OUTPUT_LIMIT: Output limit in MB of log file (default 10MB)."
     echo "  --output-dir=DIR : Folder of the outputs, one <name>/ folder per C file (default: <install dir>/sikraken_output);"
     echo "                     a relative path is from the current directory; created if missing."
-    echo "  --coverage GOAL  : branch (cover as many branches as possible, default)"
+    echo "  --coverage GOAL  : branch (cover as many branches as possible, default),"
+    echo "                     condition (as branch, each operand of && and || being a decision of its own, as gcov counts branches)"
     echo "                     or reach (generate a test that calls the --reach function)."
     echo "  --reach FUNCTION : Function to reach with --coverage reach (default: reach_error)."
     echo "  --property-file=F: Test-Comp property file either coverage-branches.prp or coverage-error-call.prp; sets --coverage (and --reach) from its contents."
+    echo "  --function NAME  : real-code mode: test the C function NAME, its parameters and the globals it reads before it writes them"
+    echo "                     being its inputs, and write the tests as a Unity file (<output dir>/<name>/unity/test_<name>_NAME.c,"
+    echo "                     run by bin/run_unity.sh); -m64 by default."
+    echo "  --ignore-initialisers: with --function: the globals that have an initialiser are inputs too (the function may be called"
+    echo "                     after the program has changed them); by default they keep their initial values. A const global always does."
+    echo "  --stub NAME      : with --function, repeatable: the function NAME, declared and not defined in the file, stands for the"
+    echo "                     environment (a sensor, hardware, the clock): each call's result is an input, and the test defines the stub"
+    echo "                     that returns the values chosen (bin/run_unity.sh links it in place of NAME)."
     echo "  <c_file>         : The C source file (.c or .i): an absolute path, or a path relative to the current directory"
     echo "                     or, failing that, to the Sikraken install directory (e.g., SampleCode/simple_if.c)."
     echo "  -v, --version    : Print the Sikraken version number and exit."
@@ -97,6 +110,7 @@ while [[ $# -gt 1 ]]; do
             ;;
         -m32|-m64)
             data_model="$1"
+            data_model_given=1
             ;;
         --ss=*)
             # 1. Extract the value after the '=' sign
@@ -132,10 +146,13 @@ while [[ $# -gt 1 ]]; do
         --generate_cfg_png)
             generate_cfg_png_flag=1
             ;;
+        --ignore-initialisers)
+            ignore_initialisers_flag=1
+            ;;
         --coverage)
             # takes a separate value; $# -lt 3 stops the C file being taken as the value
-            if [[ $# -lt 3 || ! "$2" =~ ^(branch|reach)$ ]]; then
-                echo -e "${RD}Sikraken ERROR: --coverage expects 'branch' or 'reach'${NC}"
+            if [[ $# -lt 3 || ! "$2" =~ ^(branch|condition|reach)$ ]]; then
+                echo -e "${RD}Sikraken ERROR: --coverage expects 'branch', 'condition' or 'reach'${NC}"
                 show_help
                 exit $CLI_ERROR
             fi
@@ -162,6 +179,24 @@ while [[ $# -gt 1 ]]; do
                 exit $CLI_ERROR
             fi
             ;;
+        --function)
+            if [[ $# -lt 3 || ! "$2" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+                echo -e "${RD}Sikraken ERROR: --function expects a C function name${NC}"
+                show_help
+                exit $CLI_ERROR
+            fi
+            function_name="$2"
+            shift
+            ;;
+        --stub)
+            if [[ $# -lt 3 || ! "$2" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+                echo -e "${RD}Sikraken ERROR: --stub expects a C function name${NC}"
+                show_help
+                exit $CLI_ERROR
+            fi
+            stub_names+=("$2")
+            shift
+            ;;
         --reach)
             if [[ $# -lt 3 || ! "$2" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
                 echo -e "${RD}Sikraken ERROR: --reach expects a C function name${NC}"
@@ -187,6 +222,26 @@ if [[ "$reach_given" -eq 1 && "$coverage" != "reach" ]]; then
     echo -e "${RD}Sikraken ERROR: --reach is only valid with --coverage reach${NC}"
     show_help
     exit $CLI_ERROR
+fi
+# 24/11/26 real-code mode (--function): the function's parameters are its inputs and the tests are written for Unity; branch or condition
+# coverage only for now, and none of Test-Comp's settings
+if [[ -n "$function_name" ]]; then
+    if [[ "$coverage" == "reach" || "$testcomp_flag" -eq 1 || -n "$property_file" ]]; then
+        echo -e "${RD}Sikraken ERROR: --function does not go with --coverage reach, --testcomp or --property-file${NC}"
+        show_help
+        exit $CLI_ERROR
+    fi
+    [[ "$data_model_given" -eq 0 ]] && data_model="-m64"
+    target_function=$(to_prolog_var "$function_name")   # quoting is safe: --function only accepts [A-Za-z_][A-Za-z0-9_]* names
+    output_mode="unity"
+else
+    if [[ "$ignore_initialisers_flag" -eq 1 || ${#stub_names[@]} -gt 0 ]]; then
+        echo -e "${RD}Sikraken ERROR: --ignore-initialisers and --stub go with --function only${NC}"
+        show_help
+        exit $CLI_ERROR
+    fi
+    target_function="main"
+    output_mode="testcomp"
 fi
 local_control_stack_size="953M" #"2000M" #"953M"     #that's in MiB so about 1000MB
 
@@ -277,6 +332,16 @@ if [[ -n "$output_limit_mb" ]]; then    #the string is non empty
     extra_options="${extra_options}, ol($output_limit_bytes)"
 fi
 extra_options="${extra_options}, output_dir('$output_dir')"   # quoting is safe: --output-dir refuses quotes
+if [[ "$ignore_initialisers_flag" -eq 1 ]]; then
+    extra_options="${extra_options}, ignore_initialisers"
+fi
+if [[ ${#stub_names[@]} -gt 0 ]]; then     # 24/11/26 V3 step 3: their Prolog names, quoted as the function's (--stub only accepts C identifiers)
+    stub_list=""
+    for stub in "${stub_names[@]}"; do
+        stub_list="${stub_list:+$stub_list, }'$(to_prolog_var "$stub")'"
+    done
+    extra_options="${extra_options}, stubs([$stub_list])"
+fi
 # the function name is converted as the parser does, and passed quoted so its name survives
 # the -e goal parsing (a bare Prolog variable would lose its name)
 # both names are passed: the Prolog one for matching calls during symbolic execution,
@@ -286,7 +351,7 @@ if [[ "$coverage" == "reach" ]]; then
     reach_prolog_var=$(to_prolog_var "$reach_function")
     extra_options="${extra_options}, coverage(reach('$reach_prolog_var', '$reach_function'))"
 else
-    extra_options="${extra_options}, coverage(branch)"
+    extra_options="${extra_options}, coverage($coverage)"   # branch or condition
 fi
 
 # Call the symbolic executor via ECLiPSe
@@ -294,7 +359,7 @@ se_main_file="$SIKRAKEN_INSTALL_DIR/SymbolicExecutor/se_main.pl"
 if [[ ! -f "$se_main_file" ]]; then
     se_main_file="$SIKRAKEN_INSTALL_DIR/SymbolicExecutor/se_main.eco"
 fi
-eclipse_call="$SIKRAKEN_INSTALL_DIR/eclipse/bin/x86_64_linux/eclipse -f $se_main_file -e \"se_main(['$SIKRAKEN_INSTALL_DIR', '${full_path_c_file}', '$file_name_no_ext', main, testcomp, $algo $extra_options])\" -g $stack_size_value -l $local_control_stack_size -- -$debug_mode $data_model"
+eclipse_call="$SIKRAKEN_INSTALL_DIR/eclipse/bin/x86_64_linux/eclipse -f $se_main_file -e \"se_main(['$SIKRAKEN_INSTALL_DIR', '${full_path_c_file}', '$file_name_no_ext', '$target_function', $output_mode, $algo $extra_options])\" -g $stack_size_value -l $local_control_stack_size -- -$debug_mode $data_model"
 echo "Calling Sikraken using: $eclipse_call"
 
 end_time=$(date +%s.%1N)
@@ -349,6 +414,10 @@ else
     else
         output_dir_option="--output-dir=$output_dir "
     fi
-    echo "Sikraken from $0 says, now run: ./bin/run_testcov.sh $output_dir_option$rel_path_c_file $testcov_data_model ${property_file:+ $property_file}"
+    if [[ -n "$function_name" ]]; then
+        echo "Sikraken from $0 says, now run: ./bin/run_unity.sh $output_dir_option$rel_path_c_file $testcov_data_model $function_name"
+    else
+        echo "Sikraken from $0 says, now run: ./bin/run_testcov.sh $output_dir_option$rel_path_c_file $testcov_data_model ${property_file:+ $property_file}"
+    fi
     exit 0
 fi
