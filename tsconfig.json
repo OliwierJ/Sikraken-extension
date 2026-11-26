@@ -11,7 +11,7 @@
             "mocha",
         ],
         "sourceMap": true,
-        "rootDir": "src",
+        "rootDir": ".",
         "strict": true, /* enable all strict type-checking options */
         /* Additional Checks */
         // "noImplicitReturns": true, /* Report error when not all code paths in function return a value. */
