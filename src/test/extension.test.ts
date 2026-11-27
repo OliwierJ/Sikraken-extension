@@ -1,170 +1,44 @@
-import * as assert from 'assert';
+import * as assert from 'node:assert';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import * as vscode from 'vscode';
-import { createIncludeHarness, parseFunction } from '../services/functionParsing/documentTransformer';
-import type { FunctionContext } from '../services/functionContext';
-import { runSikraken } from '../services/sikrakenRunner';
-import { evaluateFunctionInput } from '../services/inputEvaluator';
-import { parseTestInputsXML } from '../services/testInputParser';
-import { ScalarParameter } from '../services/functionParsing/types';
+import { runSikraken, runSikrakenUnityTests } from '../services/sikrakenRunner';
 
-suite('Extension Test Suite', () => {
-	vscode.window.showInformationMessage('Start all tests.');
+suite('Integration: Sikraken v3 real-code workflow', () => {
+	test('generates, compiles, and runs a Unity test suite for a demo function', async function () {
+		this.timeout(60_000);
 
-	test('supports additional scalar types in generated harnesses', () => {
-		const context = {
-			sourceFile: {
-				path: '/tmp/functions.c',
-				source: 'double calculate(double value, unsigned long count) { return value + count; }',
-			},
-			selectedFunction: {
-				source: 'double calculate(double value, unsigned long count) { return value + count; }',
-			},
-		} as FunctionContext;
-
-		const parsedFunction = parseFunction(context);
-		const harness = createIncludeHarness(context, parsedFunction);
-
-		assert.deepStrictEqual(
-			parsedFunction.parameters
-				.filter((parameter): parameter is ScalarParameter => parameter.kind === 'scalar')
-				.map((parameter) => parameter.baseType),
-			['double', 'unsigned long'],
+		const sikrakenRoot = path.resolve(__dirname, '../../lib/sikraken');
+		const sourcePath = path.join(sikrakenRoot, 'demo/real_code/linked_list.c');
+		const outputDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sikraken-v3-integration-'));
+		const functionName = 'list_find';
+		const generatedTestPath = path.join(
+			outputDir,
+			'linked_list',
+			'unity',
+			`test_linked_list_${functionName}.c`,
 		);
-		assert.match(harness.source, /extern double __VERIFIER_nondet_double\(void\);/);
-		assert.match(harness.source, /extern unsigned long __VERIFIER_nondet_ulong\(void\);/);
-		assert.match(harness.source, /__VERIFIER_nondet_double\(\)/);
-		assert.match(harness.source, /__VERIFIER_nondet_ulong\(\)/);
-	});
 
-	test('evaluates a generated scalar input against the source function', async function () {
-		this.timeout(10_000);
-
-		const temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'sikraken-evaluator-'));
 		try {
-			const sourcePath = path.join(temporaryDirectory, 'functions.c');
-			await fs.writeFile(
-				sourcePath,
-				'int classify(int value) { return value > 0 ? 1 : 0; }\nint main(void) { return 0; }\n',
-				'utf8',
-			);
-
-			const result = await evaluateFunctionInput({
-				sourcePath,
-				functionName: 'classify',
-				returnType: 'int',
-				parameters: [{
-					kind: 'scalar',
-					type: 'int',
-					name: 'value',
-					baseType: 'int',
-					nondeterministicName: 'int',
-				}],
-				inputs: [{kind: 'scalar', value: '3'}],
-				workingDirectory: temporaryDirectory,
-			});
-
-			assert.strictEqual(result, '1');
-		} finally {
-			await fs.rm(temporaryDirectory, { recursive: true, force: true });
-		}
-	});
-
-	test('evaluates a function when the included source main uses verifier inputs', async function () {
-		this.timeout(10_000);
-
-		const temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'sikraken-evaluator-'));
-		try {
-			const sourcePath = path.join(temporaryDirectory, 'functions.c');
-			await fs.writeFile(
-				sourcePath,
-				[
-					'extern int __VERIFIER_nondet_int(void);',
-					'int is_positive(int value) { return value > 0 ? 1 : 0; }',
-					'int main(void) { return __VERIFIER_nondet_int(); }',
-				].join('\n'),
-				'utf8',
-			);
-
-			const result = await evaluateFunctionInput({
-				sourcePath,
-				functionName: 'is_positive',
-				returnType: 'int',
-				parameters: [{
-					kind: 'scalar',
-					type: 'int',
-					name: 'value',
-					baseType: 'int',
-					nondeterministicName: 'int',
-				}],
-				inputs: [{kind: 'scalar', value: '3'}],
-				workingDirectory: temporaryDirectory,
-			});
-
-			assert.strictEqual(result, '1');
-		} finally {
-			await fs.rm(temporaryDirectory, { recursive: true, force: true });
-		}
-	});
-
-	test('generates the expected test inputs for a predetermined function', async function () {
-		this.timeout(30_000);
-
-		const temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'sikraken-test-'));
-		try {
-			const sourcePath = path.join(temporaryDirectory, 'functions.c');
-			const harnessPath = path.join(temporaryDirectory, 'harness.c');
-			const outputDirectory = path.join(temporaryDirectory, 'output');
-			const source = [
-				'int classify(int value) {',
-				'    if (value > 0) {',
-				'        return 1;',
-				'    }',
-				'    return 0;',
-				'}',
-			].join('\n');
-
-			await fs.writeFile(sourcePath, source, 'utf8');
-
-			const context = {
-				sourceFile: {
-					path: sourcePath,
-					source,
-				},
-				selectedFunction: {
-					source,
-				},
-			} as FunctionContext;
-			const harness = createIncludeHarness(context, parseFunction(context));
-			await fs.writeFile(harnessPath, harness.source, 'utf8');
-
 			await runSikraken({
-				scriptPath: path.resolve(__dirname, '../../lib/sikraken/bin/sikraken.sh'),
-				inputPath: harnessPath,
-				outputFileName: 'harness',
-				outputDir: outputDirectory,
-				budget: 5,
+				scriptPath: path.join(sikrakenRoot, 'bin/sikraken.sh'),
+				inputPath: sourcePath,
+				outputDir,
+				functionName,
+				budget: 10,
 			});
+			assert.ok((await fs.stat(generatedTestPath)).isFile());
 
-			const testSuitePath = path.join(outputDirectory, 'harness', 'test-suite');
-			const testInputFiles = (await fs.readdir(testSuitePath))
-				.filter(fileName => fileName.startsWith('test_input-') && fileName.endsWith('.xml'))
-				.sort();
-			const generatedInputs = await Promise.all(
-				testInputFiles.map(async fileName =>
-					parseTestInputsXML(await fs.readFile(path.join(testSuitePath, fileName), 'utf8')),
-				),
-			);
-
-			assert.deepStrictEqual(
-				generatedInputs.sort((left, right) => left.join(',').localeCompare(right.join(','))),
-				[['0'], ['1']],
-			);
+			const validation = await runSikrakenUnityTests({
+				scriptPath: path.join(sikrakenRoot, 'bin/run_unity.sh'),
+				inputPath: sourcePath,
+				outputDir,
+				functionName,
+			});
+			assert.match(validation.stdout, /Unity tests: 2, Unity failures: 0/);
+			assert.match(validation.stdout, /gcov branches: \d+(?:\.\d+)?% of \d+/);
 		} finally {
-			await fs.rm(temporaryDirectory, { recursive: true, force: true });
+			await fs.rm(outputDir, { recursive: true, force: true });
 		}
 	});
-
 });

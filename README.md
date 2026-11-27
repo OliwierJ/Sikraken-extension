@@ -1,72 +1,44 @@
 # Sikraken VS Code Extension
 
-The Sikraken extension generates C test inputs and Unity test harnesses from
-source files or selected functions. It uses Sikraken symbolic execution to
-explore branches and displays the generated inputs in VS Code.
-
-This extension was developed as my final year project.
-
-![Run Sikraken command](docs/images/run_sikraken.png)
+The extension integrates Sikraken 3.0 real-code mode into VS Code. It asks
+Sikraken to generate Unity characterization tests for a C function, then
+compiles and runs those tests with Sikraken's Unity runner and reports gcov
+coverage. Sikraken itself provides the analysis and test generation; the
+extension does not build a separate function harness.
 
 ## Features
 
-- Run Sikraken on the active C file.
-- Generate tests for the function containing the cursor.
-- Generate Unity test suites from discovered inputs.
-- Display generated inputs in a dedicated VS Code output channel.
-- Support scalar parameters and return types:
-  `char`, `short`, `int`, `long`, `long long`, `float`, and `double`.
-- Support valid signed, unsigned, and `const`-qualified scalar forms.
+- Generate tests for the C function under the cursor, or select a function
+  from the active C file.
+- Use Sikraken's v3 support for pointers, arrays, structs in reachable memory,
+  globals, declared stubs, and function side effects.
+- Compile and execute generated Unity tests, and show test and coverage results.
+- Keep generated files and optional debug logs in the extension's storage area.
 
-![Generated test inputs](docs/images/generated_output.png)
+## Requirements
 
-## Installation
+- VS Code `1.140` or newer and Node.js/npm when building from source.
+- Linux x86_64.
+- The bundled Sikraken 3.0 runtime under `lib/sikraken`.
+- Bash, `timeout`, `prlimit`, GCC with 64-bit support, and `gcov`.
 
-### From GitHub Releases
-
-Download the latest `.vsix` package from the
-[Sikraken Extension GitHub Releases](https://github.com/OliwierJ/Sikraken-extension/releases)
-page.
-
-Install the downloaded package from the command line:
+On Ubuntu, install the host tools with:
 
 ```bash
-code --install-extension sikraken-extension-<version>.vsix
+sudo apt install bash coreutils gcc
 ```
 
-Alternatively, in VS Code open the Extensions view, select the
-**...** menu, choose **Install from VSIX...**, and select the downloaded file.
+The Eclipse runtime, parser, and Unity framework are included in the Sikraken
+installation. The host compiler and Linux utilities are not. Sikraken is
+managed separately from npm and must be installed manually into
+`lib/sikraken` if it is not present in the checkout.
 
-### From source
-
-Requirements:
-
-- VS Code `1.140` or newer
-- Node.js and npm
-- x86_64 Linux environment for the bundled Sikraken tools
-- Bash, `timeout`, and `prlimit`
-- GCC with 32-bit support (`gcc -m32`)
-
-The extension checks these prerequisites before running Sikraken. The Eclipse
-runtime and Sikraken parser are bundled with the extension, but GCC and the
-Linux utility commands must be installed on the host system. On Ubuntu, the
-following usually provides the required tools:
-
-```bash
-sudo apt install bash coreutils gcc gcc-multilib
-```
-
-The exact packages may differ between Linux distributions.
-
-You can run the included Ubuntu/Debian installer from the extension directory:
-
-```bash
-bash scripts/install-dependencies.sh
-```
+## Build and run
 
 ```bash
 git clone https://github.com/OliwierJ/Sikraken-extension.git
 cd Sikraken-extension
+# Install Sikraken 3.0 into lib/sikraken
 npm install
 npm run compile
 ```
@@ -75,21 +47,40 @@ Press `F5` in VS Code to launch the Extension Development Host.
 
 ## Usage
 
-1. Open a C file.
-2. Place the cursor inside the target function, or use the active file.
-3. Right-click and choose **Generate Tests on Function** or **Run Sikraken on File**.
-4. Review the generated inputs in the **Sikraken Test Inputs** output channel.
+1. Open a C source file and place the cursor inside the function to test.
+   If the cursor is not inside a function, Sik-Test offers the functions it
+   found in the file.
+2. Choose **Generate and Validate Unity Tests with Sikraken** from the editor
+   context menu or Command Palette.
+3. Sikraken generates the Unity test file; the extension compiles and runs it.
+   The generated C file opens in the editor, and the **Sikraken** output
+   channel shows Sikraken's output, Unity's result, and gcov coverage for the
+   complete source file.
 
-Generated Unity test suites are written beside the source file when using
-function generation.
+Generated test files are runtime output stored under the extension's global
+storage directory in `sikraken_output/<source>/unity/`. In debug mode, output
+is isolated under the corresponding debug run instead. The tests characterise
+the current behavior of the selected function. Enable `sikraken.debugMode` to
+save separate Sikraken and Unity logs and metadata. Adjust
+`sikraken.sikrakenBudget` to change the generation time budget in seconds. Set
+`sikraken.stubFunctions` to the names of declared functions Sikraken should
+model as environment stubs, or enable `sikraken.ignoreInitialisers` when
+initialized globals should be treated as inputs.
 
 ## Limitations
 
-- Only scalar function parameters and return types are currently supported.
-- Arrays, pointers, structs, enums, function pointers, and variadic arguments
-  are not supported by function generation.
-- `void` return types cannot currently produce generated assertions.
-- Function generation depends on VS Code's C document symbols.
-- The bundled Sikraken command is currently intended for Linux.
-- Sikraken may produce fewer tests when analysis time or path complexity is
-  high.
+- Sikraken analyses one C file at a time. Functions declared but not defined
+  must be modelled by Sikraken or listed in `sikraken.stubFunctions`.
+- Tests run one function call from the C runtime's initial state. They do not
+  cover behavior that requires state to persist across multiple calls.
+- Input pointers do not alias or form cycles, and lazily created pointer
+  chains are limited to nine objects.
+- By-value struct parameters, `void *`, function pointers, and variadic
+  arguments are not supported by the current real-code mode.
+- Signed overflow and floating-point behavior have modelling limitations.
+- Passing generated Unity tests validates that they compile and match the
+  behavior Sikraken modelled; it does not prove that behavior is correct.
+
+The Sikraken installation includes four runnable examples under
+`demo/real_code/`; its demo documentation details supported inputs, generated
+assertions, and current analysis limits.
