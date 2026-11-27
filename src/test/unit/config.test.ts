@@ -14,10 +14,9 @@ suite('Unit: Extension Configuration Test Suite', () => {
 		assert.ok(workspaceFolder, 'The test must run with a workspace folder.');
 
 		const configuration = vscode.workspace.getConfiguration('sikraken', workspaceFolder.uri);
-		assert.strictEqual(configuration.inspect('framework')?.defaultValue, 'Unity');
-		assert.strictEqual(configuration.inspect('testGenerationMode')?.defaultValue, 'prompt');
 		assert.strictEqual(configuration.inspect('sikrakenBudget')?.defaultValue, 10);
-		assert.strictEqual(configuration.inspect('testSuiteOutputDirectory')?.defaultValue, './tests');
+		assert.deepStrictEqual(configuration.inspect('stubFunctions')?.defaultValue, []);
+		assert.strictEqual(configuration.inspect('ignoreInitialisers')?.defaultValue, false);
         assert.strictEqual(configuration.inspect('debugMode')?.defaultValue, false);
 	});
 
@@ -26,21 +25,19 @@ suite('Unit: Extension Configuration Test Suite', () => {
 		assert.ok(workspaceFolder, 'The test must run with a workspace folder.');
 
 		const configuration = vscode.workspace.getConfiguration('sikraken', workspaceFolder.uri);
-		const keys = ['framework', 'testGenerationMode', 'sikrakenBudget', 'testSuiteOutputDirectory', 'debugMode'] as const;
+		const keys = ['sikrakenBudget', 'stubFunctions', 'ignoreInitialisers', 'debugMode'] as const;
 		const previousValues = new Map(keys.map((key) => [key, configuration.inspect(key)?.workspaceValue]));
 
 		try {
-			await configuration.update('framework', 'Unity', vscode.ConfigurationTarget.Workspace);
-			await configuration.update('testGenerationMode', 'characterization', vscode.ConfigurationTarget.Workspace);
 			await configuration.update('sikrakenBudget', 23, vscode.ConfigurationTarget.Workspace);
-			await configuration.update('testSuiteOutputDirectory', './workspace-tests', vscode.ConfigurationTarget.Workspace);
+			await configuration.update('stubFunctions', ['read_temperature'], vscode.ConfigurationTarget.Workspace);
+			await configuration.update('ignoreInitialisers', true, vscode.ConfigurationTarget.Workspace);
 			await configuration.update('debugMode', true, vscode.ConfigurationTarget.Workspace);
 
 			assert.deepStrictEqual(loadSikrakenSettings(workspaceFolder.uri), {
-				framework: 'Unity',
-				testGenerationMode: 'characterization',
 				sikrakenBudget: 23,
-				testSuiteOutputDirectory: './workspace-tests',
+				stubFunctions: ['read_temperature'],
+				ignoreInitialisers: true,
                 debugMode: true
 			});
 		} finally {
@@ -62,15 +59,14 @@ suite('Unit: Extension Configuration Test Suite', () => {
 			await runSikraken({
 				scriptPath,
 				inputPath,
-				outputFileName: 'input',
 				outputDir: debugRun.outputDirectory,
 				debugMode: true,
 				debugArtifactsDir: debugRun.runDirectory,
 			});
 
-			assert.match(await fs.readFile(path.join(debugRun.runDirectory, 'stdout.log'), 'utf8'), /debug-stdout/);
-			assert.match(await fs.readFile(path.join(debugRun.runDirectory, 'stderr.log'), 'utf8'), /debug-stderr/);
-			const metadata = JSON.parse(await fs.readFile(path.join(debugRun.runDirectory, 'metadata.json'), 'utf8')) as {
+			assert.match(await fs.readFile(path.join(debugRun.runDirectory, 'sikraken-stdout.log'), 'utf8'), /debug-stdout/);
+			assert.match(await fs.readFile(path.join(debugRun.runDirectory, 'sikraken-stderr.log'), 'utf8'), /debug-stderr/);
+			const metadata = JSON.parse(await fs.readFile(path.join(debugRun.runDirectory, 'sikraken-metadata.json'), 'utf8')) as {
 				status: string;
 			};
 			assert.strictEqual(metadata.status, 'success');

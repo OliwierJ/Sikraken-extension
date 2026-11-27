@@ -1,5 +1,4 @@
 .env
-.vscodeignore
 .vscode/
 .vscode-test/
 node_modules/
@@ -14,3 +13,4 @@ SampleCode/ITERATION-2-MATRIX.md
 *.vsix
 CHANGELOG.md
 docs/initialProposal.md
+docs/Sikraken real-code demo.md

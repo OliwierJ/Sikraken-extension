@@ -37,22 +37,26 @@ server.registerTool(
 		const version = (await fs.readFile(VERSION_PATH, 'utf8').catch(() => 'unknown')).split('\n')[0].trim();
 		const capabilities = {
 			version,
-			platform: 'Linux x86_64 only; requires gcc with -m32 support',
-			approach: 'Symbolic execution that finds inputs covering as many branches as possible within a time budget',
-			inputMechanism: 'Values returned by __VERIFIER_nondet_<type>() calls, in call order',
+			platform: 'Linux x86_64; real-code mode uses gcc -m64, while Test-Comp mode may require gcc -m32 support',
+			approach: 'Symbolic execution with Test-Comp and real-code modes; real-code mode writes executable Unity tests',
+			realCodeMode: 'Pass --function NAME to generate characterisation tests from function parameters, reachable memory, globals, and declared stubs',
+			inputMechanism: 'Test-Comp mode uses __VERIFIER_nondet_<type>(); real-code mode derives inputs from the selected function',
 			supported: [
-				'scalar types: char, short, int, long, long long, float, double (and unsigned variants)',
-				'pointers and fixed-length arrays of those types (via harness; not yet exposed by this server)',
+				'function parameters, including pointers and reachable struct/array memory',
+				'globals read before being written and explicit --stub functions',
+				'function results, modified globals and input memory, stub call counts, exit and abort outcomes',
+				'Unity test generation and execution with gcov coverage measurement',
 			],
 			notSupported: [
-				'struct, union, enum parameters',
-				'void return type (function harness)',
-				'function pointers, variadic functions',
-				'external or library calls without source (e.g. strlen); no model available yet',
+				'by-value struct parameters, void pointers, function pointers and variadic arguments',
+				'pointer aliasing, cycles, and input pointer chains deeper than nine objects',
+				'state that requires multiple calls to the function',
+				'unmodelled external calls without a declared --stub',
 			],
 			caveats: [
-				'Sikraken needs the source of everything it analyses',
-				'Generated expected values are characterization of current behaviour, not correctness proofs',
+				'Each real-code test starts from the C runtime initial state and characterises current behaviour',
+				'Generated tests passing does not prove correctness; signed overflow and floating-point modelling have documented limits',
+				'This MCP server tool currently exposes Test-Comp test-input generation; the VS Code command uses real-code Unity mode',
 			],
 		};
 		return { content: [{ type: 'text', text: JSON.stringify(capabilities, null, 2) }] };
@@ -60,8 +64,8 @@ server.registerTool(
 );
 
 // ---------------------------------------------------------------------------
-// Tool 2: generate_test_inputs. Whole-file mode, same as the extension's
-// "run Sikraken on file" command. Function-level harnesses come next.
+// Tool 2: generate_test_inputs. Test-Comp mode remains available for C files
+// that provide a nondeterministic main; the VS Code extension uses v3 real-code mode.
 // ---------------------------------------------------------------------------
 const inputShape = {
 	file: z.string().describe('Absolute path to a C file that contains a main() calling __VERIFIER_nondet_*()'),
@@ -82,9 +86,9 @@ const outputShape = {
 server.registerTool(
 	'generate_test_inputs',
 	{
-		title: 'Generate branch-covering test inputs',
+		title: 'Generate Test-Comp test inputs',
 		description:
-			'Runs Sikraken on a C file and returns concrete input values, one set per generated test. ' +
+			'Runs Sikraken v3 in Test-Comp mode on a C file and returns concrete input values, one set per generated test. ' +
 			'The file must contain a main() that obtains its inputs from __VERIFIER_nondet_<type>() calls; ' +
 			'plain functions are NOT yet supported by this tool. Blocks for up to budget_seconds. ' +
 			'Linux x86_64 only.',
@@ -103,7 +107,6 @@ server.registerTool(
 			await runSikraken({
 				scriptPath: SCRIPT_PATH,
 				inputPath: file,
-				outputFileName: fileName,
 				outputDir,
 				budget: budget_seconds,
 				signal: extra.signal, // client cancellation aborts the child process

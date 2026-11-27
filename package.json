@@ -25,12 +25,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "sikraken.runSikrakenOnFile",
-        "title": "Run Sikraken on File"
-      },
-      {
         "command": "sikraken.generateTestsOnFunction",
-        "title": "Generate Tests on Function"
+        "title": "Generate and Validate Unity Tests with Sikraken"
       },
       {
         "command": "sikraken.showInstallInstructions",
@@ -53,11 +49,6 @@
       "editor/context": [
         {
           "when": "editorHasDefinitionProvider && editorTextFocus && editorLangId == c",
-          "command": "sikraken.runSikrakenOnFile",
-          "group": "navigation@10"
-        },
-        {
-          "when": "editorHasDefinitionProvider && editorTextFocus && editorLangId == c",
           "command": "sikraken.generateTestsOnFunction",
           "group": "navigation@10"
         }
@@ -67,50 +58,24 @@
       "title": "Sikraken Extension",
       "type": "object",
       "properties": {
-        "sikraken.framework": {
-          "type": "string",
-          "enum": [
-            "Unity"
-          ],
-          "markdownEnumDescriptions": [
-            "Unity C Unit Test Framework"
-          ],
-          "enumItemLabels": [
-            "Unity"
-          ],
-          "default": "Unity",
-          "description": "Select the framework to use for generating test cases."
-        },
-        "sikraken.testGenerationMode": {
-          "type": "string",
-          "enum": [
-            "prompt",
-            "characterization",
-            "userSpecified"
-          ],
-          "markdownEnumDescriptions": [
-            "Ask the user each time they generate test cases",
-            "Automatically generate characterization tests for the function",
-            "Place placeholder test cases and let the user specify the expected results"
-          ],
-          "enumItemLabels": [
-            "Prompt",
-            "Characterization",
-            "User Specified"
-          ],
-          "description": "Select the mode for generating test cases.",
-          "default": "prompt"
-        },
         "sikraken.sikrakenBudget": {
-          "type": "number",
+          "type": "integer",
           "minimum": 1,
           "description": "Set the budget for Sikraken in seconds. This is the maximum time Sikraken will spend generating test cases.",
           "default": 10
         },
-        "sikraken.testSuiteOutputDirectory": {
-          "type": "string",
-          "description": "Directory for generated Unity test suites, relative to the workspace when not absolute.",
-          "default": "./tests"
+        "sikraken.stubFunctions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "C function names declared but not defined in the source file to model as environment stubs.",
+          "default": []
+        },
+        "sikraken.ignoreInitialisers": {
+          "type": "boolean",
+          "description": "Treat initialised globals as inputs, for functions called after the program changes their values.",
+          "default": false
         },
         "sikraken.debugMode": {
           "type": "boolean",
@@ -120,9 +85,9 @@
       }
     }
   },
-  "dependencies": {
-    "ms-vscode.cpptools-extension-pack": "^1.0.2"
-  },
+  "extensionDependencies": [
+    "ms-vscode.cpptools-extension-pack"
+  ],
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",

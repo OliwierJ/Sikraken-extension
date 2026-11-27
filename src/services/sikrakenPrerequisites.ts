@@ -24,6 +24,11 @@ export async function checkSikrakenPrerequisites(scriptPath: string): Promise<Si
 	const requiredFiles = [
 		['bundled Sikraken script', scriptPath, fs.constants.X_OK],
 		[
+			'bundled Sikraken Unity runner',
+			path.resolve(path.dirname(scriptPath), 'run_unity.sh'),
+			fs.constants.X_OK,
+		],
+		[
 			'bundled Sikraken parser',
 			path.resolve(path.dirname(scriptPath), 'sikraken_parser.exe'),
 			fs.constants.X_OK,
@@ -43,7 +48,7 @@ export async function checkSikrakenPrerequisites(scriptPath: string): Promise<Si
 		}
 	}
 
-	for (const command of ['bash', 'timeout', 'prlimit'] as const) {
+	for (const command of ['bash', 'timeout', 'prlimit', 'gcov'] as const) {
 		try {
 			await execFileAsync(command, ['--version'], { windowsHide: true });
 		} catch {
@@ -52,11 +57,11 @@ export async function checkSikrakenPrerequisites(scriptPath: string): Promise<Si
 	}
 
 	try {
-		await execFileAsync('gcc', ['-m32', '-x', 'c', '-fsyntax-only', '/dev/null'], {
+		await execFileAsync('gcc', ['-m64', '-x', 'c', '-fsyntax-only', '/dev/null'], {
 			windowsHide: true,
 		});
 	} catch {
-		missing.push("GCC with 32-bit support ('gcc -m32')");
+		missing.push("GCC with 64-bit support ('gcc -m64')");
 	}
 
 	return {
